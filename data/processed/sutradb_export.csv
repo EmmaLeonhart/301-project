@@ -1,0 +1,204 @@
+qid,label,domain,p31_count,category_count
+Q209516,Eurasian harvest mouse,animals,2,14
+Q2212116,Blackbelly salamander,animals,2,4
+Q251390,Beast of Dean,animals,1,4
+Q1365,Swept Away,films,1,27
+Q372,We Live in Public,films,2,10
+Q593,A Gang Story,films,1,12
+Q595,The Intouchables,films,1,17
+Q32011,On the Town,films,1,25
+Q32217,Soldier Boyz,films,1,14
+Q32228,The Nutty Professor,films,1,24
+Q32241,Incident at Loch Ness,films,1,13
+Q32303,The Hunt,films,1,18
+Q24151,Alligator II – The Mutation,films,1,11
+Q24154,Van Diemen's Land,films,1,16
+Q24196,The Hidden Face,films,1,13
+Q24258,Visions of Light,films,1,12
+Q24340,Anna Karamazoff,films,1,15
+Q24515,Shaolin,films,1,23
+Q24585,July 14,films,1,11
+Q24618,Jaded,films,1,17
+Q59317,Arsenic and Old Lace,films,1,36
+Q59249,Hachi: A Dog's Tale,films,1,24
+Q59318,Johnny Guitar,films,1,18
+Q2201,Kick-Ass,films,1,51
+Q2345,12 Angry Men,films,1,25
+Q46361,Lettere di una novizia,films,1,9
+Q46386,L'imprevisto,films,1,8
+Q46477,Don Juan in Sicily,films,1,11
+Q46533,Favorites of the Moon,films,1,9
+Q24732,The Broken Coin,films,1,14
+Q24815,Citizen Kane,films,1,46
+Q32424,Map of the Human Heart,films,1,22
+Q32433,Lincoln,films,1,56
+Q32535,That's My Boy,films,1,34
+Q24871,Avatar,films,1,66
+Q2875,Gone with the Wind,films,1,57
+Q59346,The Mortal Instruments: City of Bones,films,1,33
+Q59391,Barbara Frietchie,films,1,19
+Q59408,Endangered Species,films,1,9
+Q59423,Q59423,films,1,16
+Q59426,Heading South,films,1,18
+Q59438,Three Seasons,films,1,14
+Q59495,Varudu,films,1,8
+Q46568,Sweet Delusions,films,1,12
+Q46609,Una spina nel cuore,films,1,11
+Q46637,Maximum Overdrive,films,1,25
+Q46717,Pirates of the Caribbean: The Curse of the Black Pearl,films,1,49
+Q46551,The Prestige,films,1,43
+Q59503,Fat Girl,films,1,35
+Q59498,Stash House,films,1,10
+Q59531,Anatomy of Hell,films,1,23
+Q59534,Planet of the Apes,films,1,30
+Q24980,Monty Python's The Meaning of Life,films,1,45
+Q2211,Malmö,cities,4,13
+Q3939,Dinslaken,cities,4,5
+Q3940,Victoria,cities,1,5
+Q16978,Krymsk,cities,2,4
+Q17856,Ballarat,cities,1,5
+Q2256,Birmingham,cities,5,8
+Q10052,Vianen,cities,3,6
+Q10086,Mysore,cities,2,4
+Q10686,Belfast,cities,3,8
+Q17895,Palmerston,cities,2,5
+Q18021,Biella,cities,2,3
+Q3958,Neubrandenburg,cities,4,5
+Q18125,Manchester,cities,3,8
+Q3992,Liège,cities,6,6
+Q10690,Cardiff,cities,3,12
+Q10717,Georgetown,cities,4,8
+Q2449,Mogadishu,cities,4,11
+Q4011,Wesel,cities,5,6
+Q4024,Frankfurt (Oder),cities,7,10
+Q18569,Douglas,cities,2,9
+Q2634,Naples,cities,3,12
+Q65,Los Angeles,cities,9,13
+Q4044,Offenburg,cities,6,6
+Q18737,Rrëshen,cities,1,5
+Q18746,Roskovec,cities,1,5
+Q2471,Sanaa,cities,3,8
+Q2467,Nassau,cities,4,11
+Q10743,Böhlen,cities,2,2
+Q10779,Zwenkau,cities,2,3
+Q11043,Wiehl,cities,3,2
+Q18705,Bajram Curri,cities,3,3
+Q18709,Patos,cities,1,4
+Q18730,Cërrik,cities,3,4
+Q18751,Poliçan,cities,1,4
+Q18768,Laç,cities,1,4
+Q18772,Librazhd,cities,1,4
+Q2656,Palermo,cities,3,9
+Q11194,Sarajevo,cities,4,12
+Q4045,Fujairah,cities,1,5
+Q18774,Kuçovë,cities,1,6
+Q18791,Shijak,cities,2,5
+Q60,New York City,cities,9,17
+Q70,Bern,cities,9,14
+Q4093,Glasgow,cities,4,9
+Q2683,Parma,cities,4,3
+Q18793,Ersekë,cities,3,3
+Q18808,Pyongyang,cities,5,6
+Q84,London,cities,7,10
+Q11285,Hetauda,cities,2,5
+Q11568,Darwin,cities,2,11
+Q556,hydrogen,chemical_elements,2,10
+Q1466,unbiunium,chemical_elements,2,2
+Q1801,lanthanum,chemical_elements,2,7
+Q560,helium,chemical_elements,2,10
+Q1809,promethium,chemical_elements,2,7
+Q568,lithium,chemical_elements,3,5
+Q1819,samarium,chemical_elements,1,6
+Q569,beryllium,chemical_elements,4,9
+Q1832,gadolinium,chemical_elements,1,10
+Q618,boron,chemical_elements,3,10
+Q1838,terbium,chemical_elements,1,7
+Q1843,dysprosium,chemical_elements,1,9
+Q623,carbon,chemical_elements,2,8
+Q1846,holmium,chemical_elements,1,8
+Q627,nitrogen,chemical_elements,2,11
+Q1849,erbium,chemical_elements,1,7
+Q629,oxygen,chemical_elements,2,9
+Q1853,thulium,chemical_elements,1,7
+Q650,fluorine,chemical_elements,2,9
+Q1855,ytterbium,chemical_elements,1,6
+Q1857,lutetium,chemical_elements,1,6
+Q654,neon,chemical_elements,2,7
+Q1872,americium,chemical_elements,1,6
+Q658,sodium,chemical_elements,3,8
+Q1876,curium,chemical_elements,2,8
+Q660,magnesium,chemical_elements,2,8
+Q1882,berkelium,chemical_elements,2,5
+Q663,aluminium,chemical_elements,3,13
+Q1888,californium,chemical_elements,2,7
+Q670,silicon,chemical_elements,3,12
+Q1892,einsteinium,chemical_elements,2,6
+Q671,francium,chemical_elements,1,7
+Q1896,fermium,chemical_elements,2,5
+Q674,phosphorus,chemical_elements,1,7
+Q1898,mendelevium,chemical_elements,2,6
+Q1901,nobelium,chemical_elements,2,6
+Q677,iron,chemical_elements,2,12
+Q1905,lawrencium,chemical_elements,2,6
+Q682,sulfur,chemical_elements,2,15
+Q428629,untriunium,chemical_elements,2,1
+Q54377,unbihexium,chemical_elements,2,2
+Q7425,unbibium,chemical_elements,2,2
+Q688,chlorine,chemical_elements,3,11
+Q428635,untribium,chemical_elements,2,1
+Q428640,unbiennium,chemical_elements,2,1
+Q428685,unbipentium,chemical_elements,2,1
+Q428692,unbiseptium,chemical_elements,2,1
+Q428648,untrinilium,chemical_elements,2,1
+Q696,argon,chemical_elements,3,5
+Q703,potassium,chemical_elements,3,8
+Q2595,Made in Japan,albums,1,6
+Q3294,Clarity,albums,1,5
+Q3297,Moonmadness,albums,1,5
+Q4183,Gespaltene Persönlichkeit,albums,1,2
+Q4753,It's a Man's World,albums,1,5
+Q4842,Awakened,albums,1,4
+Q5106,A Love Supreme,albums,1,17
+Q10575,Howl,albums,1,2
+Q11632,The Freewheelin' Bob Dylan,albums,1,6
+Q6336,Everything That Happens Will Happen Today,albums,1,15
+Q8360,(What's the Story) Morning Glory?,albums,1,8
+Q8364,( ),albums,1,6
+Q45366,The Jackson 5 in Japan,albums,1,3
+Q45367,Unapologetic,albums,1,18
+Q45401,Skywriter,albums,1,7
+Q45425,Lookin' Through the Windows,albums,1,7
+Q45463,Greatest Hits,albums,1,11
+Q128548,Greatest Hits,albums,1,10
+Q45565,Love in the Time of Science,albums,1,5
+Q45620,Goin' Back to Indiana,albums,1,7
+Q45645,Beautiful World,albums,1,4
+Q26157,Venus Doom,albums,1,5
+Q26176,Screamworks: Love in Theory and Practice,albums,1,4
+Q26232,And Love Said No – The Greatest Hits 1997–2004,albums,1,5
+Q26263,Uneasy Listening Vol. 1,albums,1,0
+Q26275,Uneasy Listening Vol. 2,albums,1,0
+Q26289,Uneasy Listening Vol. 1 & 2,albums,1,4
+Q26317,Tears on Tape,albums,1,2
+Q26331,SWRMXS,albums,1,3
+Q26342,XX – Two Decades of Love Metal,albums,1,2
+Q13171,A Thousand Suns,albums,1,10
+Q13172,Living Things,albums,1,5
+Q14016,Doorie,albums,1,4
+Q127850,El Camino,albums,1,6
+Q127844,Herz aus Glas,albums,1,3
+Q128017,"In My Lifetime, Vol. 1",albums,1,12
+Q128288,Undisputed,albums,1,5
+Q128447,Artificial Intelligence,albums,1,4
+Q128441,Caribbean Sunset,albums,1,4
+Q128455,Walking on Locusts,albums,1,4
+Q128839,Stalingrad,albums,1,4
+Q45652,Frogstomp,albums,1,6
+Q45681,Maybe Tomorrow,albums,1,6
+Q45710,Gris-Gris,albums,1,8
+Q45727,Ignition,albums,1,5
+Q45711,Jackson 5 Christmas Album,albums,1,13
+Q45777,ABC,albums,1,5
+Q45754,Third Album,albums,1,5
+Q26369,Love Metal Archives Vol. I,albums,1,6
+Q26379,Digital Versatile Doom,albums,1,6
