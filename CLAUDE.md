@@ -12,10 +12,18 @@
 - **Keep tests passing.** Do not commit code that breaks existing tests. If a change requires updating tests, update them in the same commit.
 
 ## Project Description
-_TODO: Describe what this project is about._
+Wikidata ontology analysis: comparing P31 (instance of) properties with English Wikipedia categories across domains (animals, films, cities, chemical elements, albums) to assess categorization consistency.
 
 ## Architecture and Conventions
-_TODO: Document key decisions, file structure, and patterns as they emerge._
+- `src/wikidata.py` — SPARQL queries against Wikidata Query Service
+- `src/wikipedia.py` — Wikipedia API category fetching via requests
+- `src/etl.py` — Merges both data sources into a single DataFrame
+- `src/analysis.py` — Overlap computation and domain summaries
+- `acquire.py` — Main entry point: fetches data, runs analysis, saves CSVs to `data/processed/`
+- `reports/report.qmd` — Quarto report with R (ggplot2) visualizations
+- Domains configured in `src/wikidata.py:DOMAINS` dict
+- All API calls include rate limiting (time.sleep) and User-Agent headers
+- Data files (CSVs) are tracked in git for reproducibility
 
 # currentDate
 Today's date is 2026-03-31.

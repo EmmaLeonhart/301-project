@@ -1,0 +1,77 @@
+---
+title: "Wikidata Ontology vs Wikipedia Categories"
+author: "Emma Leonhart, Evan Pasenau, Jordyn Campen"
+format: html
+---
+
+## Introduction
+
+This report compares Wikidata's P31 (instance of) ontological classification with English Wikipedia's category system across multiple domains.
+
+## Data Acquisition
+
+```{python}
+import pandas as pd
+
+df = pd.read_csv("../data/processed/ontology_comparison.csv")
+summary = pd.read_csv("../data/processed/domain_summary.csv")
+
+print(f"Total items: {len(df)}")
+print(f"Domains: {df['domain'].nunique()}")
+```
+
+## Domain Summary
+
+```{r}
+library(ggplot2)
+
+summary <- read.csv("../data/processed/domain_summary.csv")
+
+ggplot(summary, aes(x = reorder(domain, -mean_overlap_ratio), y = mean_overlap_ratio)) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Mean P31-Category Overlap by Domain",
+    x = "Domain",
+    y = "Mean Overlap Ratio"
+  ) +
+  theme_minimal()
+```
+
+## P31 Count vs Category Count
+
+```{r}
+df <- read.csv("../data/processed/ontology_comparison.csv")
+
+ggplot(df, aes(x = p31_count, y = category_count, color = domain)) +
+  geom_point(alpha = 0.6) +
+  labs(
+    title = "P31 Count vs Wikipedia Category Count",
+    x = "Number of P31 (instance of) values",
+    y = "Number of Wikipedia categories"
+  ) +
+  theme_minimal()
+```
+
+## Overlap Distribution
+
+```{r}
+ggplot(df, aes(x = domain, y = overlap_ratio, fill = domain)) +
+  geom_boxplot() +
+  labs(
+    title = "Overlap Ratio Distribution by Domain",
+    x = "Domain",
+    y = "Overlap Ratio (P31 labels found in categories)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Findings
+
+_TODO: Interpret the results after data acquisition._
+
+## Ethics and Limitations
+
+- **Cultural bias**: Only English Wikipedia is analyzed, introducing Anglophone cultural bias.
+- **API rate limits**: Exponential backoff and local caching prevent IP bans.
+- **Snapshot in time**: Both Wikidata and Wikipedia change constantly; results reflect the data at acquisition time.
