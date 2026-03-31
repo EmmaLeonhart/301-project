@@ -1,0 +1,6 @@
+domain,item_count,mean_p31_count,mean_category_count,mean_overlap_ratio,median_overlap_ratio
+albums,50,1.0,5.98,0.96,1.0
+animals,3,1.6666666666666667,7.333333333333333,0.0,0.0
+chemical_elements,50,1.96,6.82,0.7916666666666667,1.0
+cities,50,3.34,6.92,0.035555555555555556,0.0
+films,50,1.02,23.28,0.99,1.0

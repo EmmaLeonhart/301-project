@@ -3,9 +3,27 @@
 import pandas as pd
 
 
+def _substring_match(p31_labels: set[str], wiki_cats: set[str]) -> set[str]:
+    """Return P31 labels that appear as a substring in any Wikipedia category.
+
+    E.g. "film" matches "2020 films", "city" matches "Cities in Germany".
+    Case-insensitive.
+    """
+    matched = set()
+    cats_joined = [c.lower() for c in wiki_cats]
+    for label in p31_labels:
+        label_lower = label.lower()
+        for cat in cats_joined:
+            if label_lower in cat or cat in label_lower:
+                matched.add(label)
+                break
+    return matched
+
+
 def p31_category_overlap(df: pd.DataFrame) -> pd.DataFrame:
     """For each item, compute how many P31 class labels appear in Wikipedia categories.
 
+    Uses substring matching: "film" matches "2020 films", etc.
     Adds columns: overlap_count, overlap_ratio (overlap / p31_count).
     """
     overlaps = []
@@ -13,16 +31,13 @@ def p31_category_overlap(df: pd.DataFrame) -> pd.DataFrame:
         p31_labels = set(row["p31_classes"].split("|")) if row["p31_classes"] else set()
         wiki_cats = set(row["wikipedia_categories"].split("|")) if row["wikipedia_categories"] else set()
 
-        # Case-insensitive comparison
-        p31_lower = {s.lower() for s in p31_labels}
-        cats_lower = {s.lower() for s in wiki_cats}
-        overlap = p31_lower & cats_lower
+        matched = _substring_match(p31_labels, wiki_cats)
 
         overlaps.append({
             "qid": row["qid"],
-            "overlap_count": len(overlap),
-            "overlap_labels": "|".join(sorted(overlap)),
-            "overlap_ratio": len(overlap) / len(p31_lower) if p31_lower else 0.0,
+            "overlap_count": len(matched),
+            "overlap_labels": "|".join(sorted(matched)),
+            "overlap_ratio": len(matched) / len(p31_labels) if p31_labels else 0.0,
         })
 
     overlap_df = pd.DataFrame(overlaps)

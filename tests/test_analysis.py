@@ -50,17 +50,21 @@ def test_p31_category_overlap_adds_columns():
     assert len(result) == 3
 
 
-def test_p31_category_overlap_correct_values():
+def test_p31_category_overlap_substring_matching():
     df = _sample_df()
     result = p31_category_overlap(df)
-    # Q1: "animal" matches "Animals" case-insensitively? No — "animal" != "animals"
-    # So overlap should be 0 for exact match. Let's verify:
+    # Q1: "animal" is substring of "Animals" (case-insensitive) -> match
+    # "mammal" is substring of "Mammals" -> match
     q1 = result[result["qid"] == "Q1"].iloc[0]
-    # "animal" vs "animals" — these don't match (different strings)
-    # "mammal" vs "mammals" — also don't match
-    assert q1["overlap_count"] == 0
+    assert q1["overlap_count"] == 2
 
-    # Q3: "city" vs "cities" — don't match, "big city" vs "populated places" — don't match
+    # Q2: "film" is substring of "2020 films" and "Drama films" -> match
+    q2 = result[result["qid"] == "Q2"].iloc[0]
+    assert q2["overlap_count"] == 1
+    assert q2["overlap_ratio"] == 1.0
+
+    # Q3: "city" is NOT a substring of "cities" (different words), and
+    # "big city" is not in "Cities" or "Populated places"
     q3 = result[result["qid"] == "Q3"].iloc[0]
     assert q3["overlap_count"] == 0
 
