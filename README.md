@@ -1,5 +1,7 @@
 # Wikidata Ontology Analysis (COSC 301)
 
+**[View the project site](https://emmaleonhart.github.io/301-project/)**
+
 Comparing Wikidata P31 (instance of) properties with English Wikipedia categories to assess how consistently different subject areas are categorized.
 
 **Team:** Emma Leonhart, Evan Pasenau, Jordyn Campen

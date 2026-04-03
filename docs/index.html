@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wikidata Ontology vs Wikipedia Categories</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #1a1a2e;
+      --accent: #4361ee;
+      --accent2: #3a0ca3;
+      --muted: #6c757d;
+      --card-bg: #f8f9fa;
+      --border: #dee2e6;
+      --code-bg: #e9ecef;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.7;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: white;
+      padding: 3rem 0;
+      text-align: center;
+    }
+    header h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    header p { font-size: 1.1rem; opacity: 0.9; }
+    .authors { margin-top: 1rem; font-size: 0.95rem; opacity: 0.8; }
+
+    /* Nav */
+    nav {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 0;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    nav a {
+      display: block;
+      padding: 0.75rem 1.25rem;
+      color: var(--fg);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    nav a:hover, nav a.active { border-bottom-color: var(--accent); color: var(--accent); }
+
+    /* Sections */
+    section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    h2 { font-size: 1.6rem; margin-bottom: 1rem; color: var(--accent2); }
+    h3 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; }
+    p, li { margin-bottom: 0.75rem; }
+    ul, ol { padding-left: 1.5rem; }
+    code {
+      background: var(--code-bg);
+      padding: 0.15em 0.4em;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: var(--fg);
+      color: #e0e0e0;
+      padding: 1rem 1.25rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      margin: 1rem 0;
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+
+    /* Cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    .card h4 { margin-bottom: 0.5rem; color: var(--accent); }
+    .card .stat {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+    .card .label { font-size: 0.85rem; color: var(--muted); }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th { background: var(--card-bg); font-weight: 600; }
+    tr:hover td { background: #f0f4ff; }
+
+    /* Bar chart (pure CSS) */
+    .bar-chart { margin: 1.5rem 0; }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+    .bar-label {
+      width: 150px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: right;
+      padding-right: 1rem;
+      flex-shrink: 0;
+    }
+    .bar-track {
+      flex: 1;
+      background: var(--code-bg);
+      border-radius: 4px;
+      height: 28px;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      padding-left: 0.5rem;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 600;
+      min-width: 2.5rem;
+    }
+
+    /* Pipeline diagram */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 2rem 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pipeline-step {
+      background: var(--card-bg);
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      text-align: center;
+      min-width: 150px;
+    }
+    .pipeline-step strong { display: block; color: var(--accent2); }
+    .pipeline-step span { font-size: 0.8rem; color: var(--muted); }
+    .pipeline-arrow {
+      font-size: 1.5rem;
+      color: var(--accent);
+      padding: 0 0.5rem;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--accent); }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.5rem; }
+      nav ul { flex-wrap: wrap; }
+      .bar-label { width: 100px; font-size: 0.8rem; }
+      .pipeline { flex-direction: column; }
+      .pipeline-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>Wikidata Ontology vs Wikipedia Categories</h1>
+    <p>Assessing categorization consistency across knowledge domains</p>
+    <div class="authors">Emma Leonhart &middot; Evan Pasenau &middot; Jordyn Campen &mdash; COSC 301</div>
+  </div>
+</header>
+
+<nav>
+  <ul>
+    <li><a href="#questions">Questions</a></li>
+    <li><a href="#methodology">Methodology</a></li>
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#findings">Findings</a></li>
+    <li><a href="#ethics">Ethics</a></li>
+  </ul>
+</nav>
+
+<!-- ───────── QUESTIONS ───────── -->
+<section id="questions">
+  <div class="container">
+    <h2>Analytics Questions</h2>
+    <ol>
+      <li><strong>Do Wikipedia categories line up with the Wikidata ontology?</strong> &mdash; We compare P31 (instance&nbsp;of) class labels against English Wikipedia category names to measure alignment.</li>
+      <li><strong>Do they align more in certain domains?</strong> &mdash; We sample five domains (animals, films, cities, chemical elements, albums) and compare overlap ratios.</li>
+      <li><strong>Are some categories of information easier to categorize than others?</strong> &mdash; We look at variance within each domain to identify which areas have consistent vs.&nbsp;inconsistent classification.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ───────── METHODOLOGY ───────── -->
+<section id="methodology">
+  <div class="container">
+    <h2>Methodology</h2>
+
+    <h3>Data Sources</h3>
+    <div class="card-grid">
+      <div class="card">
+        <h4>Wikidata</h4>
+        <p>SPARQL queries against the <a href="https://query.wikidata.org/">Wikidata Query Service</a> fetch items that are <code>P31</code> (instance&nbsp;of) a target class, along with all their P31 values.</p>
+      </div>
+      <div class="card">
+        <h4>English Wikipedia</h4>
+        <p>The <a href="https://en.wikipedia.org/w/api.php">Wikipedia API</a> retrieves non-hidden categories for each article, giving us the crowd-sourced classification.</p>
+      </div>
+    </div>
+
+    <h3>Domains Sampled</h3>
+    <table>
+      <thead>
+        <tr><th>Domain</th><th>Wikidata Class</th><th>QID</th><th>Items Fetched</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Animals</td><td>animal</td><td>Q729</td><td>3</td></tr>
+        <tr><td>Films</td><td>film</td><td>Q11424</td><td>50</td></tr>
+        <tr><td>Cities</td><td>city</td><td>Q515</td><td>50</td></tr>
+        <tr><td>Chemical Elements</td><td>chemical element</td><td>Q11344</td><td>50</td></tr>
+        <tr><td>Albums</td><td>album</td><td>Q482994</td><td>50</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Overlap Metric</h3>
+    <p>For each item, we compute an <strong>overlap ratio</strong>: the fraction of its P31 class labels that appear as a substring in at least one of its Wikipedia categories. For example, the P31 label <code>"film"</code> matches the Wikipedia category <code>"2020 films"</code>. This substring matching accounts for the fact that Wikipedia categories are often pluralized or prefixed (e.g. "Cities in Germany" contains "city" when compared case-insensitively).</p>
+    <pre><code>overlap_ratio = matched_p31_labels / total_p31_labels</code></pre>
+    <p>A ratio of <strong>1.0</strong> means every P31 type label appears somewhere in the item's Wikipedia categories. A ratio of <strong>0.0</strong> means none do.</p>
+  </div>
+</section>
+
+<!-- ───────── PIPELINE ───────── -->
+<section id="pipeline">
+  <div class="container">
+    <h2>Data Pipeline</h2>
+
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <strong>1. Acquire</strong>
+        <span>wikidata.py + wikipedia.py</span>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <strong>2. Merge &amp; Clean</strong>
+        <span>etl.py</span>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <strong>3. Analyze</strong>
+        <span>analysis.py</span>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <strong>4. Report</strong>
+        <span>GitHub Pages</span>
+      </div>
+    </div>
+
+    <h3>Step 1: Acquire</h3>
+    <p><code>src/wikidata.py</code> sends SPARQL queries to fetch items that are <code>P31</code> (instance&nbsp;of) each target class, filtering to those with an English Wikipedia sitelink. For each item, a second query retrieves all its P31 values. <code>src/wikipedia.py</code> calls the Wikipedia API to get non-hidden categories for each article. Rate limiting (<code>time.sleep</code>) and a proper User-Agent header are applied to all requests.</p>
+
+    <h3>Step 2: Merge &amp; Clean</h3>
+    <p><code>src/etl.py</code> joins the two data sources into a single pandas DataFrame. P31 class labels and Wikipedia categories are stored as pipe-delimited strings, with counts pre-computed for downstream analysis. The merged dataset is saved to <code>data/processed/ontology_comparison.csv</code>.</p>
+
+    <h3>Step 3: Analyze</h3>
+    <p><code>src/analysis.py</code> computes the substring-based overlap ratio per item and aggregates domain-level summaries (mean, median overlap ratio; mean P31 count; mean category count). Results are saved to <code>data/processed/domain_summary.csv</code>.</p>
+
+    <h3>Step 4: Report</h3>
+    <p>This GitHub Pages site presents the findings. The project also includes a Quarto report (<code>reports/report.qmd</code>) with R/ggplot2 visualizations for additional exploration.</p>
+
+    <h3>Running It</h3>
+    <pre><code>pip install -r requirements.txt
+python acquire.py 50          # fetch 50 items per domain
+python -m pytest tests/ -v    # run tests</code></pre>
+  </div>
+</section>
+
+<!-- ───────── FINDINGS ───────── -->
+<section id="findings">
+  <div class="container">
+    <h2>Findings</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="stat">203</div>
+        <div class="label">Total items analyzed</div>
+      </div>
+      <div class="card">
+        <div class="stat">5</div>
+        <div class="label">Domains compared</div>
+      </div>
+      <div class="card">
+        <div class="stat">0.56</div>
+        <div class="label">Overall mean overlap ratio</div>
+      </div>
+    </div>
+
+    <h3>Mean Overlap Ratio by Domain</h3>
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label">Films</div>
+        <div class="bar-track"><div class="bar-fill" style="width:99%">0.99</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Albums</div>
+        <div class="bar-track"><div class="bar-fill" style="width:96%">0.96</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Chem. Elements</div>
+        <div class="bar-track"><div class="bar-fill" style="width:79%">0.79</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Cities</div>
+        <div class="bar-track"><div class="bar-fill" style="width:3.6%">0.04</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Animals</div>
+        <div class="bar-track"><div class="bar-fill" style="width:2%">0.00</div></div>
+      </div>
+    </div>
+
+    <h3>Domain Summary Table</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Domain</th>
+          <th>Items</th>
+          <th>Mean P31 Count</th>
+          <th>Mean Category Count</th>
+          <th>Mean Overlap</th>
+          <th>Median Overlap</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Films</td><td>50</td><td>1.02</td><td>23.28</td><td>0.99</td><td>1.00</td></tr>
+        <tr><td>Albums</td><td>50</td><td>1.00</td><td>5.98</td><td>0.96</td><td>1.00</td></tr>
+        <tr><td>Chemical Elements</td><td>50</td><td>1.96</td><td>6.82</td><td>0.79</td><td>1.00</td></tr>
+        <tr><td>Cities</td><td>50</td><td>3.34</td><td>6.92</td><td>0.04</td><td>0.00</td></tr>
+        <tr><td>Animals</td><td>3</td><td>1.67</td><td>7.33</td><td>0.00</td><td>0.00</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Key Observations</h3>
+    <ol>
+      <li><strong>Films and albums show near-perfect alignment.</strong> Almost every film is categorized under a Wikipedia category containing the word "film", and similarly for albums. These domains have simple, consistent P31 types (<code>film</code>, <code>album</code>) that map directly to Wikipedia's naming conventions.</li>
+      <li><strong>Chemical elements have high but imperfect overlap.</strong> Most elements match, but items with additional P31 types (e.g. <code>allotrope</code>, <code>simple substance</code>) may not have corresponding Wikipedia categories.</li>
+      <li><strong>Cities show very low overlap.</strong> Wikidata classifies cities with fine-grained types (e.g. <code>big city</code>, <code>municipality of Germany</code>, <code>statutory city</code>) that do not appear as substrings in Wikipedia's geographic categories (e.g. "Cities in North Rhine-Westphalia"). The ontology vocabularies diverge significantly.</li>
+      <li><strong>Animals have zero overlap.</strong> Wikidata types like <code>Animalia</code> and <code>taxon</code> are scientific terms absent from Wikipedia's category naming, which uses common names (e.g. "Mammals of Japan", "Rodents of Europe").</li>
+      <li><strong>Domains with fewer, more generic P31 types align better.</strong> Films (1.02 avg P31) match perfectly, while cities (3.34 avg P31) with more specific types diverge. Wikipedia categories favor human-readable topic groupings over formal ontological classification.</li>
+    </ol>
+
+    <h3>Answering Our Questions</h3>
+    <div class="card-grid">
+      <div class="card">
+        <h4>Q1: Do Wikipedia categories line up with Wikidata ontology?</h4>
+        <p><strong>Partially.</strong> Alignment varies dramatically by domain, from 99% (films) to 0% (animals). The two systems use fundamentally different classification strategies.</p>
+      </div>
+      <div class="card">
+        <h4>Q2: Do they align more in certain domains?</h4>
+        <p><strong>Yes.</strong> Cultural/media domains (films, albums) align almost perfectly. Scientific (animals) and geographic (cities) domains show poor alignment.</p>
+      </div>
+      <div class="card">
+        <h4>Q3: Are some easier to categorize?</h4>
+        <p><strong>Yes.</strong> Domains with simple, widely-used type labels (like "film") are easy to categorize consistently. Domains with specialized taxonomic or administrative vocabularies resist cross-system alignment.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── ETHICS ───────── -->
+<section id="ethics">
+  <div class="container">
+    <h2>Ethics &amp; Limitations</h2>
+    <ul>
+      <li><strong>Cultural bias:</strong> Only English Wikipedia is analyzed, introducing Anglophone cultural bias. Categories reflect the interests and knowledge of English-speaking editors.</li>
+      <li><strong>Sample size:</strong> The animals domain returned only 3 items due to SPARQL query constraints. Results for this domain are not statistically robust.</li>
+      <li><strong>API rate limits:</strong> Exponential backoff and local caching prevent IP bans. All requests include a descriptive User-Agent header.</li>
+      <li><strong>Snapshot in time:</strong> Both Wikidata and Wikipedia change constantly; results reflect the data at acquisition time and may not generalize to other time periods.</li>
+      <li><strong>Substring matching:</strong> Our overlap metric is approximate. It catches cases like "film" &rarr; "2020 films" but may miss semantic equivalences (e.g. "Animalia" vs. "Mammals") or produce false positives with very short labels.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>COSC 301 &mdash; Data Analytics &middot; <a href="https://github.com/EmmaLeonhart/301-project">View source on GitHub</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
