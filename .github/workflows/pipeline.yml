@@ -31,10 +31,13 @@ jobs:
       - name: Install R packages
         run: |
           Rscript -e 'install.packages("ggplot2", repos = "https://cloud.r-project.org")'
+      - name: Install TinyTeX
+        run: quarto install tinytex
+
       - name: Render report
         run: |
           quarto render reports/report.qmd --to pdf
-          cp reports/report.pdf docs/report.pdf || true
+          cp reports/report.pdf docs/report.pdf
 
       # Commit updated data + report
       - name: Commit results
