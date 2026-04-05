@@ -3,7 +3,11 @@
     "allow": [
       "Bash(python:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(quarto --version)",
+      "Bash(git push:*)",
+      "Bash(gh run:*)",
+      "Bash(gh workflow:*)"
     ]
   }
 }
