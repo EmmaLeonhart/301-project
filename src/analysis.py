@@ -44,15 +44,66 @@ def p31_category_overlap(df: pd.DataFrame) -> pd.DataFrame:
     return df.merge(overlap_df, on="qid")
 
 
+def compute_hop_distance(wd_levels: dict[int, list[str]], wp_levels: dict[int, list[str]]) -> dict:
+    """Find the minimum total hops for a Wikidata ancestor to match a Wikipedia ancestor.
+
+    wd_levels: {0: ['film'], 1: ['visual artwork', 'creative work'], ...}
+               (depth -> list of Wikidata class labels at that depth)
+    wp_levels: {0: ['2020 films', 'Drama films'], 1: ['Films by year'], ...}
+               (depth -> list of Wikipedia category names at that depth)
+
+    We check all (wd_depth, wp_depth) pairs ordered by total_hops = wd_depth + wp_depth.
+    The first substring match found is the convergence point.
+
+    Returns dict with: total_hops, hops_wikidata, hops_wikipedia, match_label, match_category.
+    Returns total_hops=-1 if no convergence found.
+    """
+    max_wd = max(wd_levels.keys(), default=0)
+    max_wp = max(wp_levels.keys(), default=0)
+
+    for total in range(0, max_wd + max_wp + 1):
+        for wd_d in range(min(total, max_wd) + 1):
+            wp_d = total - wd_d
+            if wd_d not in wd_levels or wp_d not in wp_levels:
+                continue
+            for label in wd_levels[wd_d]:
+                label_lower = label.lower()
+                for cat in wp_levels[wp_d]:
+                    cat_lower = cat.lower()
+                    if label_lower in cat_lower or cat_lower in label_lower:
+                        return {
+                            "total_hops": total,
+                            "hops_wikidata": wd_d,
+                            "hops_wikipedia": wp_d,
+                            "match_label": label,
+                            "match_category": cat,
+                        }
+
+    return {
+        "total_hops": -1,
+        "hops_wikidata": -1,
+        "hops_wikipedia": -1,
+        "match_label": "",
+        "match_category": "",
+    }
+
+
 def domain_summary(df: pd.DataFrame) -> pd.DataFrame:
     """Summarize overlap statistics per domain."""
     if "overlap_ratio" not in df.columns:
         df = p31_category_overlap(df)
 
-    return df.groupby("domain").agg(
-        item_count=("qid", "count"),
-        mean_p31_count=("p31_count", "mean"),
-        mean_category_count=("category_count", "mean"),
-        mean_overlap_ratio=("overlap_ratio", "mean"),
-        median_overlap_ratio=("overlap_ratio", "median"),
-    ).reset_index()
+    aggs = {
+        "item_count": ("qid", "count"),
+        "mean_p31_count": ("p31_count", "mean"),
+        "mean_category_count": ("category_count", "mean"),
+        "mean_overlap_ratio": ("overlap_ratio", "mean"),
+        "median_overlap_ratio": ("overlap_ratio", "median"),
+    }
+    if "total_hops" in df.columns:
+        converged = df[df["total_hops"] >= 0]
+        if not converged.empty:
+            aggs["mean_hops"] = ("total_hops", "mean")
+            aggs["median_hops"] = ("total_hops", "median")
+
+    return df.groupby("domain").agg(**aggs).reset_index()

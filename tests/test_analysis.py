@@ -1,7 +1,7 @@
 """Tests for the analysis module — no network calls needed."""
 
 import pandas as pd
-from src.analysis import p31_category_overlap, domain_summary
+from src.analysis import p31_category_overlap, domain_summary, compute_hop_distance
 
 
 def _sample_df():
@@ -109,3 +109,68 @@ def test_empty_p31():
     }])
     result = p31_category_overlap(df)
     assert result.iloc[0]["overlap_ratio"] == 0.0
+
+
+# --- Hop distance tests ---
+
+def test_hop_distance_immediate_match():
+    """Depth 0 on both sides — direct P31 label in direct category."""
+    wd = {0: ["film"]}
+    wp = {0: ["2020 films", "Drama films"]}
+    result = compute_hop_distance(wd, wp)
+    assert result["total_hops"] == 0
+    assert result["hops_wikidata"] == 0
+    assert result["hops_wikipedia"] == 0
+    assert result["match_label"] == "film"
+
+
+def test_hop_distance_wikidata_climb():
+    """No match at depth 0, but Wikidata ancestor at depth 1 matches."""
+    wd = {0: ["Animalia"], 1: ["organism"]}
+    wp = {0: ["Organisms of Asia", "Endangered species"]}
+    result = compute_hop_distance(wd, wp)
+    assert result["total_hops"] == 1
+    assert result["hops_wikidata"] == 1
+    assert result["hops_wikipedia"] == 0
+    assert result["match_label"] == "organism"
+
+
+def test_hop_distance_wikipedia_climb():
+    """No match at depth 0, but Wikipedia parent at depth 1 matches."""
+    wd = {0: ["chemical element"]}
+    wp = {0: ["Alkaline earth metals"], 1: ["Chemical elements"]}
+    result = compute_hop_distance(wd, wp)
+    assert result["total_hops"] == 1
+    assert result["hops_wikidata"] == 0
+    assert result["hops_wikipedia"] == 1
+    assert result["match_label"] == "chemical element"
+
+
+def test_hop_distance_both_climb():
+    """Need to go up on both sides to find a match."""
+    wd = {0: ["big city"], 1: ["city"], 2: ["human settlement"]}
+    wp = {0: ["Populated places in Bavaria"], 1: ["Human settlements in Germany"]}
+    result = compute_hop_distance(wd, wp)
+    # "human settlement" (wd depth 2) matches "Human settlements in Germany" (wp depth 1)
+    # total = 3. But "city" (wd depth 1) doesn't match anything at wp depth 0 or 1.
+    # Let's check: total=1 → (1,0): "city" vs wp[0]? "city" in "Populated places in Bavaria"? No.
+    # total=2 → (1,1): "city" vs "Human settlements in Germany"? No.
+    #           (2,0): "human settlement" vs "Populated places in Bavaria"? No.
+    # total=3 → (2,1): "human settlement" vs "Human settlements in Germany"? Yes!
+    assert result["total_hops"] == 3
+    assert result["hops_wikidata"] == 2
+    assert result["hops_wikipedia"] == 1
+
+
+def test_hop_distance_no_match():
+    """No convergence found."""
+    wd = {0: ["taxon"]}
+    wp = {0: ["Rodents of Europe"]}
+    result = compute_hop_distance(wd, wp)
+    assert result["total_hops"] == -1
+
+
+def test_hop_distance_empty():
+    """Empty levels."""
+    result = compute_hop_distance({}, {})
+    assert result["total_hops"] == -1

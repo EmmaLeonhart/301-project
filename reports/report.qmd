@@ -6,16 +6,21 @@ format: html
 
 ## Introduction
 
-This report compares Wikidata's P31 (instance of) ontological classification with English Wikipedia's category system across multiple domains.
+This report compares Wikidata's P31 (instance of) ontological classification with English Wikipedia's category system across multiple domains. The pipeline runs periodically via GitHub Actions, re-querying both APIs to capture changes over time.
 
 ## Data Acquisition
 
 ```{python}
 import pandas as pd
+import os
+from datetime import datetime
 
 df = pd.read_csv("../data/processed/ontology_comparison.csv")
 summary = pd.read_csv("../data/processed/domain_summary.csv")
 
+# Show when the data file was last modified
+mtime = os.path.getmtime("../data/processed/ontology_comparison.csv")
+print(f"Data snapshot: {datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M UTC')}")
 print(f"Total items: {len(df)}")
 print(f"Domains: {df['domain'].nunique()}")
 ```

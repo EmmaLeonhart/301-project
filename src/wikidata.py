@@ -84,6 +84,70 @@ def fetch_p31_values(qid: str) -> list[dict]:
     return classes
 
 
+def fetch_p279_parents(qids: list[str], delay: float = 1.0) -> dict[str, list[dict]]:
+    """Fetch P279 (subclass of) parents for a batch of QIDs.
+
+    Returns dict mapping each input QID to its list of parent classes:
+        {'Q515': [{'qid': 'Q486972', 'label': 'human settlement'}, ...]}
+    """
+    if not qids:
+        return {}
+
+    values_clause = " ".join(f"wd:{qid}" for qid in qids)
+    query = f"""
+    SELECT ?item ?parent ?parentLabel WHERE {{
+      VALUES ?item {{ {values_clause} }}
+      ?item wdt:P279 ?parent .
+      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+    }}
+    """
+    sparql = _sparql_endpoint()
+    sparql.setQuery(query)
+    time.sleep(delay)
+    results = sparql.query().convert()
+
+    parents: dict[str, list[dict]] = {qid: [] for qid in qids}
+    for row in results["results"]["bindings"]:
+        item_qid = row["item"]["value"].rsplit("/", 1)[-1]
+        parent_qid = row["parent"]["value"].rsplit("/", 1)[-1]
+        parent_label = row["parentLabel"]["value"]
+        if item_qid in parents:
+            parents[item_qid].append({"qid": parent_qid, "label": parent_label})
+    return parents
+
+
+def fetch_p279_chain(start_qids: list[str], max_depth: int = 5, delay: float = 1.0) -> dict[int, list[dict]]:
+    """BFS up the P279 (subclass of) hierarchy from starting QIDs.
+
+    Returns {depth: [{'qid': ..., 'label': ...}]} where depth 0 is not included
+    (that's the starting P31 values themselves).
+    """
+    visited = set(start_qids)
+    current_level = list(start_qids)
+    result = {}
+
+    for depth in range(1, max_depth + 1):
+        if not current_level:
+            break
+
+        # Batch into groups of 50 to avoid query limits
+        all_parents = []
+        for i in range(0, len(current_level), 50):
+            batch = current_level[i:i + 50]
+            parents = fetch_p279_parents(batch, delay=delay)
+            for parent_list in parents.values():
+                for p in parent_list:
+                    if p["qid"] not in visited:
+                        visited.add(p["qid"])
+                        all_parents.append(p)
+
+        if all_parents:
+            result[depth] = all_parents
+        current_level = [p["qid"] for p in all_parents]
+
+    return result
+
+
 def fetch_domain(domain_name: str, limit: int = 500, delay: float = 1.0) -> list[dict]:
     """Fetch items + their full P31 values for a domain.
 
