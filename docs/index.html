@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wikidata Ontology vs Wikipedia Categories</title>
+
+  <!-- Discord / Open Graph previews -->
+  <meta property="og:title" content="Wikidata Ontology vs Wikipedia Categories">
+  <meta property="og:description" content="Comparing P31 (instance of) properties with English Wikipedia categories across animals, films, cities, chemical elements, and albums to assess categorization consistency.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#4361ee">
   <style>
     :root {
       --bg: #ffffff;
@@ -192,6 +198,23 @@
     }
     footer a { color: var(--accent); }
 
+    .download-btn {
+      display: inline-block;
+      margin-top: 1.25rem;
+      padding: 0.7rem 1.5rem;
+      background: white;
+      color: var(--accent2);
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .download-btn:hover {
+      background: #e8e8ff;
+      transform: translateY(-1px);
+    }
+
     @media (max-width: 600px) {
       header h1 { font-size: 1.5rem; }
       nav ul { flex-wrap: wrap; }
@@ -208,6 +231,7 @@
     <h1>Wikidata Ontology vs Wikipedia Categories</h1>
     <p>Assessing categorization consistency across knowledge domains</p>
     <div class="authors">Emma Leonhart &middot; Evan Pasenau &middot; Jordyn Campen &mdash; COSC 301</div>
+    <a href="report.pdf" download class="download-btn">Download Report (PDF)</a>
   </div>
 </header>
 
