@@ -20,9 +20,10 @@ jobs:
           python-version: "3.13"
       - run: pip install -r requirements.txt
 
-      # Run data acquisition + analysis
+      # Run data acquisition + analysis (continue on failure so report still renders from existing data)
       - name: Acquire data
         run: python acquire.py 50
+        continue-on-error: true
 
       # Quarto setup + render PDF
       - uses: quarto-dev/quarto-actions/setup@v2
