@@ -6,7 +6,7 @@ format: html
 
 ## Introduction
 
-This report compares Wikidata's P31 (instance of) ontological classification with English Wikipedia's category system across multiple domains. The pipeline runs periodically via GitHub Actions, re-querying both APIs to capture changes over time.
+This report compares Wikidata's P31 (instance of) ontological classification with English Wikipedia's category system across multiple domains. We use two complementary measures: **surface overlap** (do P31 labels appear as substrings in Wikipedia category names?) and **ontology hop distance** (how many hops up the P279 subclass / parent-category hierarchies before the two systems converge?). The pipeline runs periodically via GitHub Actions, re-querying both APIs to capture changes over time.
 
 ## Data Acquisition
 
@@ -23,6 +23,11 @@ mtime = os.path.getmtime("../data/processed/ontology_comparison.csv")
 print(f"Data snapshot: {datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M UTC')}")
 print(f"Total items: {len(df)}")
 print(f"Domains: {df['domain'].nunique()}")
+
+has_hops = "total_hops" in df.columns
+if has_hops:
+    converged = df[df["total_hops"] >= 0]
+    print(f"Items with hop convergence: {len(converged)}/{len(df)}")
 ```
 
 ## Domain Summary
@@ -71,12 +76,81 @@ ggplot(df, aes(x = domain, y = overlap_ratio, fill = domain)) +
   theme(legend.position = "none")
 ```
 
+## Hop Distance Analysis
+
+The hop distance measures how many steps up the Wikidata P279 (subclass of) and Wikipedia parent-category hierarchies are needed before the two classification systems converge. A total hop count of 0 means the P31 label appears directly in a Wikipedia category; higher values indicate the two ontologies diverge at the surface but converge at a more abstract level.
+
+```{r}
+if ("total_hops" %in% colnames(df)) {
+  converged <- df[df$total_hops >= 0, ]
+
+  ggplot(converged, aes(x = domain, y = total_hops, fill = domain)) +
+    geom_boxplot() +
+    labs(
+      title = "Hop Distance to Convergence by Domain",
+      x = "Domain",
+      y = "Total Hops (Wikidata + Wikipedia)"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "none")
+} else {
+  cat("Hop distance data not yet available — re-run the pipeline to generate it.")
+}
+```
+
+```{r}
+if ("total_hops" %in% colnames(df)) {
+  ggplot(converged, aes(x = hops_wikidata, y = hops_wikipedia, color = domain)) +
+    geom_jitter(width = 0.2, height = 0.2, alpha = 0.6) +
+    labs(
+      title = "Wikidata Hops vs Wikipedia Hops to Convergence",
+      x = "Hops up P279 hierarchy (Wikidata)",
+      y = "Hops up parent categories (Wikipedia)"
+    ) +
+    theme_minimal()
+}
+```
+
+```{r}
+if ("total_hops" %in% colnames(df)) {
+  # Convergence rate per domain
+  conv_rate <- aggregate(
+    total_hops ~ domain,
+    data = df,
+    FUN = function(x) mean(x >= 0)
+  )
+  colnames(conv_rate)[2] <- "convergence_rate"
+
+  ggplot(conv_rate, aes(x = reorder(domain, -convergence_rate), y = convergence_rate)) +
+    geom_col(fill = "coral") +
+    labs(
+      title = "Convergence Rate by Domain",
+      subtitle = "Fraction of items where Wikidata and Wikipedia hierarchies converge within 5 hops",
+      x = "Domain",
+      y = "Convergence Rate"
+    ) +
+    scale_y_continuous(labels = scales::percent_format()) +
+    theme_minimal()
+}
+```
+
 ## Findings
 
-_TODO: Interpret the results after data acquisition._
+The surface overlap analysis reveals a stark divide across domains. **Films** (mean overlap 0.99) and **albums** (0.96) show near-perfect alignment between Wikidata's P31 labels and Wikipedia's category names — these domains use simple, human-readable type labels like "film" and "album" that map directly to Wikipedia naming conventions such as "2020 films" or "Pop albums."
+
+**Chemical elements** (0.79) sit in the middle: many items match through "chemical element," but Wikidata also assigns more specific P31 types (e.g., particular element groups) that don't always appear in Wikipedia categories.
+
+**Cities** (0.04) and **animals** (0.00) show poor to zero surface overlap. Wikidata classifies cities with fine-grained administrative types ("big city," "municipality," "prefecture capital") that diverge from Wikipedia's geographic groupings ("Cities in Germany," "Populated places"). Animals fare worst because Wikidata uses biological terms ("Animalia," "taxon") while Wikipedia uses common-language categories ("Mammals of Japan," "Rodents of Europe").
+
+The hop distance analysis adds a crucial second dimension. Even where surface overlap is zero, the two ontologies often converge a few levels up their respective hierarchies. For animals and cities, the convergence typically requires climbing the Wikidata P279 chain (e.g., "taxon" to "organism") or the Wikipedia parent-category chain (e.g., "Mammals of Japan" to "Organisms") until a shared concept appears. The asymmetry in which side needs more hops reveals whether the ontological gap originates from Wikidata's over-specificity or Wikipedia's preference for geographic/temporal groupings over formal classification.
+
+A consistent pattern emerges: **domains with fewer, more generic P31 types align better at the surface**, while domains with specialized scientific or administrative vocabularies require hierarchical traversal to find common ground. This suggests that Wikidata and Wikipedia serve complementary rather than redundant purposes — Wikidata excels at precise formal classification, while Wikipedia's categories optimize for human browsability.
 
 ## Ethics and Limitations
 
-- **Cultural bias**: Only English Wikipedia is analyzed, introducing Anglophone cultural bias.
-- **API rate limits**: Exponential backoff and local caching prevent IP bans.
+- **Cultural bias**: Only English Wikipedia is analyzed, introducing Anglophone cultural bias. Categories in other language editions may organize knowledge differently.
+- **API rate limits**: Fixed delays between requests prevent IP bans, but limit the sample size feasible per pipeline run.
 - **Snapshot in time**: Both Wikidata and Wikipedia change constantly; results reflect the data at acquisition time.
+- **Substring matching limitations**: The overlap metric relies on substring matching, which can miss semantic equivalences (e.g., "city" vs "municipality") and produce false positives on coincidental substring matches.
+- **Hop distance ceiling**: The BFS traversal is capped at 5 hops in each direction. Items that do not converge within this window are marked as non-convergent, but may converge at greater depth.
+- **Sample size**: The animals domain currently returns only 3 items due to SPARQL query constraints, making per-domain statistics unreliable for that domain.
