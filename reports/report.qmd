@@ -1,7 +1,14 @@
 ---
 title: "Wikidata Ontology vs Wikipedia Categories"
 author: "Emma Leonhart, Evan Pasenau, Jordyn Campen"
-format: html
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    self-contained: true
+  pdf:
+    toc: true
 ---
 
 ## Introduction

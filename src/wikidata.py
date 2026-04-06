@@ -6,6 +6,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 WIKIDATA_SPARQL = "https://query.wikidata.org/sparql"
 USER_AGENT = "COSC301-OntologyAnalysis/1.0 (university project)"
+MAX_RETRIES = 4
 
 # Domains to compare — each maps a human label to a Wikidata class QID.
 # We fetch items that are P31 (instance of) these classes.
@@ -35,6 +36,21 @@ def _sparql_endpoint():
     return sparql
 
 
+def _query_with_retry(sparql, retries: int = MAX_RETRIES):
+    """Execute a SPARQL query with exponential backoff on 429 errors."""
+    from urllib.error import HTTPError
+    for attempt in range(retries):
+        try:
+            return sparql.query().convert()
+        except HTTPError as e:
+            if e.code == 429 and attempt < retries - 1:
+                wait = 2 ** (attempt + 1)
+                print(f"    Rate limited (429), retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                raise
+
+
 def fetch_items_for_class(class_qid: str, limit: int = 500) -> list[dict]:
     """Return items that are P31 (instance of) the given class.
 
@@ -53,7 +69,7 @@ def fetch_items_for_class(class_qid: str, limit: int = 500) -> list[dict]:
     """
     sparql = _sparql_endpoint()
     sparql.setQuery(query)
-    results = sparql.query().convert()
+    results = _query_with_retry(sparql)
 
     items = []
     for row in results["results"]["bindings"]:
@@ -74,7 +90,7 @@ def fetch_p31_values(qid: str) -> list[dict]:
     """
     sparql = _sparql_endpoint()
     sparql.setQuery(query)
-    results = sparql.query().convert()
+    results = _query_with_retry(sparql)
 
     classes = []
     for row in results["results"]["bindings"]:
@@ -104,7 +120,7 @@ def fetch_p279_parents(qids: list[str], delay: float = 1.0) -> dict[str, list[di
     sparql = _sparql_endpoint()
     sparql.setQuery(query)
     time.sleep(delay)
-    results = sparql.query().convert()
+    results = _query_with_retry(sparql)
 
     parents: dict[str, list[dict]] = {qid: [] for qid in qids}
     for row in results["results"]["bindings"]:
@@ -116,7 +132,7 @@ def fetch_p279_parents(qids: list[str], delay: float = 1.0) -> dict[str, list[di
     return parents
 
 
-def fetch_p279_chain(start_qids: list[str], max_depth: int = 5, delay: float = 1.0) -> dict[int, list[dict]]:
+def fetch_p279_chain(start_qids: list[str], max_depth: int = 5, delay: float = 2.0) -> dict[int, list[dict]]:
     """BFS up the P279 (subclass of) hierarchy from starting QIDs.
 
     Returns {depth: [{'qid': ..., 'label': ...}]} where depth 0 is not included

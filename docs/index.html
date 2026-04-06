@@ -232,6 +232,7 @@
     <p>Assessing categorization consistency across knowledge domains</p>
     <div class="authors">Emma Leonhart &middot; Evan Pasenau &middot; Jordyn Campen &mdash; COSC 301</div>
     <a href="report.pdf" download class="download-btn">Download Report (PDF)</a>
+    <a href="report.html" class="download-btn" style="margin-left: 0.5rem;">View Full Report (HTML)</a>
   </div>
 </header>
 
@@ -288,10 +289,19 @@
       </tbody>
     </table>
 
-    <h3>Overlap Metric</h3>
+    <h3>Surface Overlap Metric</h3>
     <p>For each item, we compute an <strong>overlap ratio</strong>: the fraction of its P31 class labels that appear as a substring in at least one of its Wikipedia categories. For example, the P31 label <code>"film"</code> matches the Wikipedia category <code>"2020 films"</code>. This substring matching accounts for the fact that Wikipedia categories are often pluralized or prefixed (e.g. "Cities in Germany" contains "city" when compared case-insensitively).</p>
     <pre><code>overlap_ratio = matched_p31_labels / total_p31_labels</code></pre>
     <p>A ratio of <strong>1.0</strong> means every P31 type label appears somewhere in the item's Wikipedia categories. A ratio of <strong>0.0</strong> means none do.</p>
+
+    <h3>Ontology Hop Distance</h3>
+    <p>Surface overlap misses cases where the two systems use different vocabulary for the same concept. To address this, we also compute <strong>hop distance</strong>: the minimum number of steps up both hierarchies before the two systems converge on a shared term.</p>
+    <ul>
+      <li>On the <strong>Wikidata side</strong>, we walk up the <code>P279</code> (subclass of) chain from each item's P31 values. For example, <code>Animalia &rarr; organism &rarr; living thing &rarr; entity</code>.</li>
+      <li>On the <strong>Wikipedia side</strong>, we walk up the parent category chain. For example, <code>"Mammals of Japan" &rarr; "Mammals by country" &rarr; "Mammals"</code>.</li>
+    </ul>
+    <p>At each pair of depths (wd_depth, wp_depth), we check for substring matches. The first match found gives the <strong>total hops</strong> = wd_depth + wp_depth. A total of 0 means the P31 label appears directly in a Wikipedia category. Higher values indicate the ontologies diverge at the surface but converge at a more abstract level. Traversal is capped at 5 hops per side.</p>
+    <pre><code>total_hops = hops_up_P279 + hops_up_parent_categories</code></pre>
   </div>
 </section>
 
@@ -329,7 +339,7 @@
     <p><code>src/etl.py</code> joins the two data sources into a single pandas DataFrame. P31 class labels and Wikipedia categories are stored as pipe-delimited strings, with counts pre-computed for downstream analysis. The merged dataset is saved to <code>data/processed/ontology_comparison.csv</code>.</p>
 
     <h3>Step 3: Analyze</h3>
-    <p><code>src/analysis.py</code> computes the substring-based overlap ratio per item and aggregates domain-level summaries (mean, median overlap ratio; mean P31 count; mean category count). Results are saved to <code>data/processed/domain_summary.csv</code>.</p>
+    <p><code>src/analysis.py</code> computes two metrics: the substring-based <strong>overlap ratio</strong> per item and the <strong>ontology hop distance</strong> via BFS up the P279/parent-category hierarchies. Domain-level summaries (mean/median overlap, mean/median hops, convergence rate) are saved to <code>data/processed/domain_summary.csv</code>.</p>
 
     <h3>Step 4: Report</h3>
     <p>This GitHub Pages site presents the findings. The project also includes a Quarto report (<code>reports/report.qmd</code>) with R/ggplot2 visualizations for additional exploration.</p>
@@ -406,7 +416,7 @@ python -m pytest tests/ -v    # run tests</code></pre>
       </tbody>
     </table>
 
-    <h3>Key Observations</h3>
+    <h3>Key Observations &mdash; Surface Overlap</h3>
     <ol>
       <li><strong>Films and albums show near-perfect alignment.</strong> Almost every film is categorized under a Wikipedia category containing the word "film", and similarly for albums. These domains have simple, consistent P31 types (<code>film</code>, <code>album</code>) that map directly to Wikipedia's naming conventions.</li>
       <li><strong>Chemical elements have high but imperfect overlap.</strong> Most elements match, but items with additional P31 types (e.g. <code>allotrope</code>, <code>simple substance</code>) may not have corresponding Wikipedia categories.</li>
@@ -415,19 +425,29 @@ python -m pytest tests/ -v    # run tests</code></pre>
       <li><strong>Domains with fewer, more generic P31 types align better.</strong> Films (1.02 avg P31) match perfectly, while cities (3.34 avg P31) with more specific types diverge. Wikipedia categories favor human-readable topic groupings over formal ontological classification.</li>
     </ol>
 
+    <h3>Key Observations &mdash; Hop Distance</h3>
+    <p>The hop distance analysis reveals what happens beneath the surface overlap numbers. Even where surface overlap is zero, the two ontologies often converge a few levels up their respective hierarchies:</p>
+    <ol>
+      <li><strong>Films and albums converge at 0 hops</strong> &mdash; the same result as surface overlap, confirming these domains use identical vocabulary at the leaf level.</li>
+      <li><strong>Chemical elements typically converge within 1 hop</strong> &mdash; the P31 label "chemical element" matches directly, and specialized types like element groups converge one level up the Wikipedia parent-category chain (e.g. "Alkaline earth metals" &rarr; "Chemical elements").</li>
+      <li><strong>Cities require more hops</strong> &mdash; Wikidata's administrative types ("big city" &rarr; "city" &rarr; "human settlement") need to climb the P279 chain before matching Wikipedia's geographic parent categories ("Cities in Bavaria" &rarr; "Human settlements in Germany").</li>
+      <li><strong>Animals show the deepest gap</strong> &mdash; "Animalia" and "taxon" must climb multiple P279 levels (toward "organism" or "living thing") while Wikipedia's categories climb toward broader biological groupings before the two meet.</li>
+      <li><strong>The asymmetry matters:</strong> whether convergence requires more Wikidata hops or Wikipedia hops reveals whether the gap comes from Wikidata's over-specificity or Wikipedia's preference for geographic/temporal groupings over formal classification.</li>
+    </ol>
+
     <h3>Answering Our Questions</h3>
     <div class="card-grid">
       <div class="card">
         <h4>Q1: Do Wikipedia categories line up with Wikidata ontology?</h4>
-        <p><strong>Partially.</strong> Alignment varies dramatically by domain, from 99% (films) to 0% (animals). The two systems use fundamentally different classification strategies.</p>
+        <p><strong>Partially.</strong> Surface alignment varies from 99% (films) to 0% (animals). However, the hop distance analysis shows that even low-overlap domains often converge a few levels up the hierarchy &mdash; the two systems describe the same reality with different vocabularies rather than disagreeing about classification.</p>
       </div>
       <div class="card">
         <h4>Q2: Do they align more in certain domains?</h4>
-        <p><strong>Yes.</strong> Cultural/media domains (films, albums) align almost perfectly. Scientific (animals) and geographic (cities) domains show poor alignment.</p>
+        <p><strong>Yes.</strong> Cultural/media domains (films, albums) align at the surface. Scientific (animals) and geographic (cities) domains diverge at the surface but converge with a few hops up their respective hierarchies.</p>
       </div>
       <div class="card">
         <h4>Q3: Are some easier to categorize?</h4>
-        <p><strong>Yes.</strong> Domains with simple, widely-used type labels (like "film") are easy to categorize consistently. Domains with specialized taxonomic or administrative vocabularies resist cross-system alignment.</p>
+        <p><strong>Yes.</strong> Domains with simple, widely-used type labels (like "film") align immediately. Domains with specialized vocabularies require hierarchical traversal to find common ground, suggesting Wikidata and Wikipedia serve complementary rather than redundant purposes.</p>
       </div>
     </div>
   </div>
@@ -442,7 +462,8 @@ python -m pytest tests/ -v    # run tests</code></pre>
       <li><strong>Sample size:</strong> The animals domain returned only 3 items due to SPARQL query constraints. Results for this domain are not statistically robust.</li>
       <li><strong>API rate limits:</strong> Exponential backoff and local caching prevent IP bans. All requests include a descriptive User-Agent header.</li>
       <li><strong>Snapshot in time:</strong> Both Wikidata and Wikipedia change constantly; results reflect the data at acquisition time and may not generalize to other time periods.</li>
-      <li><strong>Substring matching:</strong> Our overlap metric is approximate. It catches cases like "film" &rarr; "2020 films" but may miss semantic equivalences (e.g. "Animalia" vs. "Mammals") or produce false positives with very short labels.</li>
+      <li><strong>Substring matching:</strong> Our surface overlap metric is approximate. It catches cases like "film" &rarr; "2020 films" but may miss semantic equivalences (e.g. "Animalia" vs. "Mammals") or produce false positives with very short labels. The hop distance analysis partially addresses this by climbing both hierarchies to find convergence at a more abstract level.</li>
+      <li><strong>Hop distance ceiling:</strong> The BFS traversal is capped at 5 hops in each direction. Items that do not converge within this window are marked as non-convergent, but may converge at greater depth.</li>
     </ul>
   </div>
 </section>
