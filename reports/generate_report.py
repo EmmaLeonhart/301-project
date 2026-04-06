@@ -149,8 +149,8 @@ def generate_report(data_dir="data/processed", output_path="reports/report.pdf")
         for bar, val in zip(bars, plot_stats["mean_depth"]):
             ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height() / 2,
                     f"{val:.1f}", va="center", fontsize=10)
-        ax.set_xlabel("Mean Depth (0 = direct category match)")
-        ax.set_title("Mean Steps to P910 (topic's main category) by Domain")
+        ax.set_xlabel("Average Minimum Wikipedia Category Depth (0 = direct match)")
+        ax.set_title("Average Minimum Wikipedia Category Depth to P910 (topic's main category) Match")
         plt.tight_layout()
         pdf.savefig(fig)
         plt.close(fig)
@@ -352,10 +352,10 @@ def generate_html(data_dir="data/processed", output_path="docs/index.html"):
 
     <h3>P910 (topic's main category) Matching</h3>
     <p>For each item, we follow its P31 (instance of) class's <code>P910 (topic's main category)</code> property to find the Wikidata item for the corresponding Wikipedia category. We then use that item's English Wikipedia sitelink to get the actual category name (e.g. <code>Q7378</code> &rarr; <code>Category:Mammals</code>). If the P31 (instance of) class lacks P910 (topic's main category), we walk up the <code>P279 (subclass of)</code> hierarchy until we find a class that has one.</p>
-    <p>We then check whether the item is directly in that Wikipedia category. If not, we walk up the parent-category chain and report the <strong>depth</strong> at which the P910 (topic's main category) predicted category first appears:</p>
+    <p>We then check whether the item is directly in that Wikipedia category. If not, we walk up the Wikipedia parent-category chain and report the <strong>minimum depth</strong> at which the P910 (topic's main category) predicted category first appears. The "mean depth" shown in the findings is the average of this minimum depth across all items in a domain.</p>
     <pre><code>depth = 0  &rarr;  item is directly in the P910 (topic's main category) category
 depth = 1  &rarr;  P910 (topic's main category) category is one level up (parent of a direct category)
-depth = N  &rarr;  P910 (topic's main category) category is N levels up the hierarchy</code></pre>
+depth = N  &rarr;  P910 (topic's main category) category is N levels up the Wikipedia parent-category hierarchy</code></pre>
   </div>
 </section>
 
@@ -402,10 +402,10 @@ python -m pytest tests/ -v            # run tests</code></pre>
     <div class="card-grid">
       <div class="card"><div class="stat">{total_items}</div><div class="label">Total items analyzed</div></div>
       <div class="card"><div class="stat">{n_domains}</div><div class="label">Domains compared</div></div>
-      <div class="card"><div class="stat">{overall_mean_depth:.1f}</div><div class="label">Overall mean depth to P910 (topic's main category) match</div></div>
+      <div class="card"><div class="stat">{overall_mean_depth:.1f}</div><div class="label">Average minimum Wikipedia depth to P910 (topic's main category) match</div></div>
     </div>
 
-    <h3>Mean Steps to P910 (topic's main category) by Domain</h3>
+    <h3>Average Minimum Wikipedia Category Depth to P910 (topic's main category) Match</h3>
     <div class="bar-chart">
 {bar_rows}    </div>
 
