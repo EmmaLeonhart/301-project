@@ -30,11 +30,13 @@ def _load_data(data_dir="data/processed"):
 
 def _domain_depth_stats(df):
     """Return per-domain stats: items, mean_depth, match_rate, mean_p31, mean_cats."""
+    has_p279 = "p279_depth" in df.columns
+    has_wp = "wp_depth" in df.columns
     rows = []
     for domain, group in df.groupby("domain"):
         with_p910 = group[group["p910_count"] > 0]
         found = group[group["p910_depth"] >= 0]
-        rows.append({
+        row = {
             "domain": domain,
             "items": len(group),
             "with_p910": len(with_p910),
@@ -45,7 +47,14 @@ def _domain_depth_stats(df):
             "mean_p31": group["p31_count"].mean(),
             "mean_cats": group["category_count"].mean(),
             "mean_overlap": group["overlap_ratio"].mean(),
-        })
+        }
+        if has_p279:
+            p279_found = group[group["p279_depth"] >= 0]
+            row["mean_p279_depth"] = p279_found["p279_depth"].mean() if len(p279_found) > 0 else float("nan")
+        if has_wp:
+            wp_found = group[group["wp_depth"] >= 0]
+            row["mean_wp_depth"] = wp_found["wp_depth"].mean() if len(wp_found) > 0 else float("nan")
+        rows.append(row)
     return pd.DataFrame(rows).sort_values("mean_depth", ascending=True, na_position="last")
 
 
@@ -129,17 +138,33 @@ def generate_report(data_dir="data/processed", output_path="reports/report.pdf")
         ])
 
         # Summary table
-        col_labels = ["Domain", "Items", "Mean Depth", "Match Rate", "Mean P31 (instance of)", "Mean Categories"]
+        has_both = "mean_p279_depth" in stats.columns and "mean_wp_depth" in stats.columns
+        if has_both:
+            col_labels = ["Domain", "Items", "P279 Depth", "WP Depth", "Total Depth", "Match Rate", "Mean P31", "Mean Cats"]
+        else:
+            col_labels = ["Domain", "Items", "Mean Depth", "Match Rate", "Mean P31 (instance of)", "Mean Categories"]
         row_data = []
         for _, r in stats.iterrows():
-            row_data.append([
-                r["domain"].title(),
-                str(r["items"]),
-                f"{r['mean_depth']:.1f}" if not pd.isna(r["mean_depth"]) else "N/A",
-                f"{r['match_rate']:.0%}",
-                f"{r['mean_p31']:.1f}",
-                f"{r['mean_cats']:.1f}",
-            ])
+            if has_both:
+                row_data.append([
+                    r["domain"].title(),
+                    str(r["items"]),
+                    f"{r['mean_p279_depth']:.1f}" if not pd.isna(r.get("mean_p279_depth")) else "N/A",
+                    f"{r['mean_wp_depth']:.1f}" if not pd.isna(r.get("mean_wp_depth")) else "N/A",
+                    f"{r['mean_depth']:.1f}" if not pd.isna(r["mean_depth"]) else "N/A",
+                    f"{r['match_rate']:.0%}",
+                    f"{r['mean_p31']:.1f}",
+                    f"{r['mean_cats']:.1f}",
+                ])
+            else:
+                row_data.append([
+                    r["domain"].title(),
+                    str(r["items"]),
+                    f"{r['mean_depth']:.1f}" if not pd.isna(r["mean_depth"]) else "N/A",
+                    f"{r['match_rate']:.0%}",
+                    f"{r['mean_p31']:.1f}",
+                    f"{r['mean_cats']:.1f}",
+                ])
         _table_page(pdf, "Domain Summary", col_labels, row_data)
 
         # Mean depth bar chart
@@ -198,9 +223,19 @@ def generate_html(data_dir="data/processed", output_path="docs/index.html"):
     overall_mean_depth = df.loc[df["p910_depth"] >= 0, "p910_depth"].mean()
 
     # Build domain table rows
+    has_both = "mean_p279_depth" in stats.columns and "mean_wp_depth" in stats.columns
     domain_table_rows = ""
     for _, r in stats.iterrows():
-        domain_table_rows += f"""        <tr>
+        if has_both:
+            p279_val = f"{r['mean_p279_depth']:.1f}" if not pd.isna(r.get("mean_p279_depth")) else "N/A"
+            wp_val = f"{r['mean_wp_depth']:.1f}" if not pd.isna(r.get("mean_wp_depth")) else "N/A"
+            domain_table_rows += f"""        <tr>
+          <td>{r['domain'].title()}</td><td>{r['items']}</td>
+          <td>{p279_val}</td><td>{wp_val}</td><td>{r['mean_depth']:.1f}</td>
+          <td>{r['match_rate']:.0%}</td><td>{r['mean_p31']:.1f}</td><td>{r['mean_cats']:.1f}</td>
+        </tr>\n"""
+        else:
+            domain_table_rows += f"""        <tr>
           <td>{r['domain'].title()}</td><td>{r['items']}</td>
           <td>{r['mean_depth']:.1f}</td><td>{r['match_rate']:.0%}</td>
           <td>{r['mean_p31']:.1f}</td><td>{r['mean_cats']:.1f}</td>
@@ -412,7 +447,7 @@ python -m pytest tests/ -v            # run tests</code></pre>
     <h3>Domain Summary</h3>
     <table>
       <thead>
-        <tr><th>Domain</th><th>Items</th><th>Mean Depth</th><th>Match Rate</th><th>Mean P31 (instance of) Count</th><th>Mean Categories</th></tr>
+        <tr><th>Domain</th><th>Items</th>{"<th>P279 (subclass of) Depth</th><th>Wikipedia Depth</th><th>Total Depth</th>" if has_both else "<th>Mean Depth</th>"}<th>Match Rate</th><th>Mean P31 (instance of)</th><th>Mean Categories</th></tr>
       </thead>
       <tbody>
 {domain_table_rows}      </tbody>
