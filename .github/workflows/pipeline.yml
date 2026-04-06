@@ -2,7 +2,7 @@ name: Run Pipeline
 
 on:
   schedule:
-    - cron: "0 6 * * 1"  # Every Monday at 6:00 UTC
+    - cron: "0 6 * * 3"  # Every Wednesday at 6:00 UTC
   workflow_dispatch:       # Manual trigger from Actions tab
 
 permissions:
