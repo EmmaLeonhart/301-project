@@ -19,13 +19,15 @@ This report compares Wikidata's P31 (instance of) ontological classification wit
 
 ```{python}
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+import numpy as np
 import os
 from datetime import datetime
 
 df = pd.read_csv("../data/processed/ontology_comparison.csv")
 summary = pd.read_csv("../data/processed/domain_summary.csv")
 
-# Show when the data file was last modified
 mtime = os.path.getmtime("../data/processed/ontology_comparison.csv")
 print(f"Data snapshot: {datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M UTC')}")
 print(f"Total items: {len(df)}")
@@ -39,106 +41,101 @@ if has_hops:
 
 ## Domain Summary
 
-```{r}
-library(ggplot2)
-
-summary <- read.csv("../data/processed/domain_summary.csv")
-
-ggplot(summary, aes(x = reorder(domain, -mean_overlap_ratio), y = mean_overlap_ratio)) +
-  geom_col(fill = "steelblue") +
-  labs(
-    title = "Mean P31-Category Overlap by Domain",
-    x = "Domain",
-    y = "Mean Overlap Ratio"
-  ) +
-  theme_minimal()
+```{python}
+ordered = summary.sort_values("mean_overlap_ratio", ascending=True)
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.barh(ordered["domain"], ordered["mean_overlap_ratio"], color="steelblue")
+ax.set_xlabel("Mean Overlap Ratio")
+ax.set_title("Mean P31-Category Overlap by Domain")
+ax.set_xlim(0, 1.05)
+plt.tight_layout()
+plt.show()
 ```
 
 ## P31 Count vs Category Count
 
-```{r}
-df <- read.csv("../data/processed/ontology_comparison.csv")
-
-ggplot(df, aes(x = p31_count, y = category_count, color = domain)) +
-  geom_point(alpha = 0.6) +
-  labs(
-    title = "P31 Count vs Wikipedia Category Count",
-    x = "Number of P31 (instance of) values",
-    y = "Number of Wikipedia categories"
-  ) +
-  theme_minimal()
+```{python}
+fig, ax = plt.subplots(figsize=(8, 5))
+for domain, group in df.groupby("domain"):
+    ax.scatter(group["p31_count"], group["category_count"], label=domain, alpha=0.6)
+ax.set_xlabel("Number of P31 (instance of) values")
+ax.set_ylabel("Number of Wikipedia categories")
+ax.set_title("P31 Count vs Wikipedia Category Count")
+ax.legend()
+plt.tight_layout()
+plt.show()
 ```
 
 ## Overlap Distribution
 
-```{r}
-ggplot(df, aes(x = domain, y = overlap_ratio, fill = domain)) +
-  geom_boxplot() +
-  labs(
-    title = "Overlap Ratio Distribution by Domain",
-    x = "Domain",
-    y = "Overlap Ratio (P31 labels found in categories)"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none")
+```{python}
+domains = sorted(df["domain"].unique())
+box_data = [df[df["domain"] == d]["overlap_ratio"].values for d in domains]
+
+fig, ax = plt.subplots(figsize=(8, 5))
+bp = ax.boxplot(box_data, labels=domains, patch_artist=True)
+colors = plt.cm.Set2(np.linspace(0, 1, len(domains)))
+for patch, color in zip(bp["boxes"], colors):
+    patch.set_facecolor(color)
+ax.set_ylabel("Overlap Ratio (P31 labels found in categories)")
+ax.set_title("Overlap Ratio Distribution by Domain")
+plt.tight_layout()
+plt.show()
 ```
 
 ## Hop Distance Analysis
 
 The hop distance measures how many steps up the Wikidata P279 (subclass of) and Wikipedia parent-category hierarchies are needed before the two classification systems converge. A total hop count of 0 means the P31 label appears directly in a Wikipedia category; higher values indicate the two ontologies diverge at the surface but converge at a more abstract level.
 
-```{r}
-if ("total_hops" %in% colnames(df)) {
-  converged <- df[df$total_hops >= 0, ]
+```{python}
+if has_hops:
+    converged = df[df["total_hops"] >= 0]
+    conv_domains = sorted(converged["domain"].unique())
+    hop_data = [converged[converged["domain"] == d]["total_hops"].values for d in conv_domains]
 
-  ggplot(converged, aes(x = domain, y = total_hops, fill = domain)) +
-    geom_boxplot() +
-    labs(
-      title = "Hop Distance to Convergence by Domain",
-      x = "Domain",
-      y = "Total Hops (Wikidata + Wikipedia)"
-    ) +
-    theme_minimal() +
-    theme(legend.position = "none")
-} else {
-  cat("Hop distance data not yet available — re-run the pipeline to generate it.")
-}
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bp = ax.boxplot(hop_data, labels=conv_domains, patch_artist=True)
+    colors = plt.cm.Set2(np.linspace(0, 1, len(conv_domains)))
+    for patch, color in zip(bp["boxes"], colors):
+        patch.set_facecolor(color)
+    ax.set_ylabel("Total Hops (Wikidata + Wikipedia)")
+    ax.set_title("Hop Distance to Convergence by Domain")
+    plt.tight_layout()
+    plt.show()
+else:
+    print("Hop distance data not yet available — re-run the pipeline to generate it.")
 ```
 
-```{r}
-if ("total_hops" %in% colnames(df)) {
-  ggplot(converged, aes(x = hops_wikidata, y = hops_wikipedia, color = domain)) +
-    geom_jitter(width = 0.2, height = 0.2, alpha = 0.6) +
-    labs(
-      title = "Wikidata Hops vs Wikipedia Hops to Convergence",
-      x = "Hops up P279 hierarchy (Wikidata)",
-      y = "Hops up parent categories (Wikipedia)"
-    ) +
-    theme_minimal()
-}
+```{python}
+if has_hops:
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for domain, group in converged.groupby("domain"):
+        ax.scatter(
+            group["hops_wikidata"] + np.random.uniform(-0.15, 0.15, len(group)),
+            group["hops_wikipedia"] + np.random.uniform(-0.15, 0.15, len(group)),
+            label=domain, alpha=0.6,
+        )
+    ax.set_xlabel("Hops up P279 hierarchy (Wikidata)")
+    ax.set_ylabel("Hops up parent categories (Wikipedia)")
+    ax.set_title("Wikidata Hops vs Wikipedia Hops to Convergence")
+    ax.legend()
+    plt.tight_layout()
+    plt.show()
 ```
 
-```{r}
-if ("total_hops" %in% colnames(df)) {
-  # Convergence rate per domain
-  conv_rate <- aggregate(
-    total_hops ~ domain,
-    data = df,
-    FUN = function(x) mean(x >= 0)
-  )
-  colnames(conv_rate)[2] <- "convergence_rate"
+```{python}
+if has_hops:
+    conv_rate = df.groupby("domain")["total_hops"].apply(lambda x: (x >= 0).mean())
+    conv_rate = conv_rate.sort_values(ascending=True)
 
-  ggplot(conv_rate, aes(x = reorder(domain, -convergence_rate), y = convergence_rate)) +
-    geom_col(fill = "coral") +
-    labs(
-      title = "Convergence Rate by Domain",
-      subtitle = "Fraction of items where Wikidata and Wikipedia hierarchies converge within 5 hops",
-      x = "Domain",
-      y = "Convergence Rate"
-    ) +
-    scale_y_continuous(labels = scales::percent_format()) +
-    theme_minimal()
-}
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.barh(conv_rate.index, conv_rate.values, color="coral")
+    ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+    ax.set_xlabel("Convergence Rate")
+    ax.set_title("Convergence Rate by Domain\n(fraction converging within 5 hops)")
+    ax.set_xlim(0, 1.1)
+    plt.tight_layout()
+    plt.show()
 ```
 
 ## Findings
