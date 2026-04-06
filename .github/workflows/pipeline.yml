@@ -37,22 +37,17 @@ jobs:
             git push
           fi
 
-      # Quarto setup + render
-      - uses: quarto-dev/quarto-actions/setup@v2
-      - name: Install TinyTeX
-        run: quarto install tinytex
+      # Generate PDF + HTML report with pure Python/matplotlib
+      - name: Generate report
+        run: python reports/generate_report.py
 
-      - name: Render report
-        run: |
-          quarto render reports/report.qmd --to html
-          quarto render reports/report.qmd --to pdf
-          cp reports/report.html docs/index.html
-          cp reports/report.pdf docs/report.pdf
+      - name: Copy PDF to docs
+        run: cp reports/report.pdf docs/report.pdf
 
-      # Commit report + push everything
+      # Commit report + push
       - name: Commit report and push
         run: |
-          git add reports/ docs/
+          git add reports/report.pdf docs/
           if ! git diff --staged --quiet; then
             git commit -m "Pipeline run: update report $(date -u +%Y-%m-%d)"
             git pull --rebase
