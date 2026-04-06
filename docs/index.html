@@ -51,12 +51,12 @@
 
 
   <h2>Findings</h2>
-  <p>The P910-based analysis provides a principled comparison by following the semantic links that Wikidata itself defines: P31 class &rarr; P910 (topic's main category) &rarr; enwiki sitelink &rarr; Wikipedia category.</p>
+  <p>By following Wikidata's own P910 (topic's main category) links rather than heuristic string matching, we measure real semantic alignment between the two systems.</p>
   <ul>
-    <li><strong>P910 coverage varies by domain</strong>: Not all P31 classes have P910 links. Well-maintained domains tend to have better coverage.</li>
-    <li><strong>Direct category membership</strong>: When a P910 link exists, items in well-organized domains tend to be directly placed in the predicted Wikipedia category.</li>
-    <li><strong>Depth as a divergence measure</strong>: The depth at which the predicted category appears in the parent hierarchy quantifies how much Wikipedia's categorization has diverged from Wikidata's ontological structure.</li>
-    <li><strong>Missing P910 links reveal ontology gaps</strong>: P31 classes without P910 represent places where the Wikidata-to-Wikipedia bridge hasn't been built.</li>
+    <li><strong>Chemical elements</strong> show the strongest alignment: P910-derived categories appear directly in Wikipedia categories (~80% overlap at depth 0), reflecting tight curation in a small, well-defined domain.</li>
+    <li><strong>Films, albums, and cities</strong> all have full P910 coverage, but their predicted categories appear 2&ndash;3 levels up the Wikipedia parent-category hierarchy. Wikipedia prefers specific year/genre categories (e.g. "2020 drama films") over the broad P910-predicted category ("Films").</li>
+    <li><strong>Animals</strong> show the deepest divergence, requiring 3&ndash;5 hops. Wikipedia categorizes animals by geography and conservation status rather than ontological type.</li>
+    <li><strong>Structural insight</strong>: P910 coverage is universal across all five domains, but direct category membership is rare outside chemical elements. The gap between Wikidata's type-based ontology and Wikipedia's browsing-oriented categories is systematic, not random.</li>
   </ul>
 
   <h2>Ethics and Limitations</h2>
