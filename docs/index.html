@@ -179,7 +179,7 @@ python -m pytest tests/ -v            # run tests</code></pre>
     <div class="card-grid">
       <div class="card"><div class="stat">23</div><div class="label">Total items analyzed</div></div>
       <div class="card"><div class="stat">5</div><div class="label">Domains compared</div></div>
-      <div class="card"><div class="stat">2.1</div><div class="label">Average minimum Wikipedia depth to P910 (topic's main category) match</div></div>
+      <div class="card"><div class="stat">1.8</div><div class="label">Average minimum Wikipedia depth to P910 (topic's main category) match</div></div>
     </div>
 
     <h3>Average Minimum Wikipedia Category Depth to P910 (topic's main category) Match</h3>
@@ -189,15 +189,15 @@ python -m pytest tests/ -v            # run tests</code></pre>
         <div class="bar-track"><div class="bar-fill" style="width:100%">5.0</div></div>
       </div>
       <div class="bar-row">
-        <div class="bar-label">Films</div>
-        <div class="bar-track"><div class="bar-fill" style="width:60%">3.0</div></div>
-      </div>
-      <div class="bar-row">
         <div class="bar-label">Cities</div>
-        <div class="bar-track"><div class="bar-fill" style="width:44%">2.2</div></div>
+        <div class="bar-track"><div class="bar-fill" style="width:40%">2.0</div></div>
       </div>
       <div class="bar-row">
         <div class="bar-label">Albums</div>
+        <div class="bar-track"><div class="bar-fill" style="width:40%">2.0</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Films</div>
         <div class="bar-track"><div class="bar-fill" style="width:40%">2.0</div></div>
       </div>
       <div class="bar-row">
@@ -209,33 +209,33 @@ python -m pytest tests/ -v            # run tests</code></pre>
     <h3>Domain Summary</h3>
     <table>
       <thead>
-        <tr><th>Domain</th><th>Items</th><th>Mean Depth</th><th>Match Rate</th><th>Mean P31 (instance of) Count</th><th>Mean Categories</th></tr>
+        <tr><th>Domain</th><th>Items</th><th>P279 (subclass of) Depth</th><th>Wikipedia Depth</th><th>Total Depth</th><th>Match Rate</th><th>Mean P31 (instance of)</th><th>Mean Categories</th></tr>
       </thead>
       <tbody>
         <tr>
           <td>Chemical_Elements</td><td>5</td>
-          <td>0.0</td><td>100%</td>
-          <td>2.0</td><td>7.2</td>
+          <td>0.0</td><td>0.0</td><td>0.0</td>
+          <td>100%</td><td>2.0</td><td>7.2</td>
         </tr>
         <tr>
           <td>Albums</td><td>5</td>
-          <td>2.0</td><td>100%</td>
-          <td>1.0</td><td>2.8</td>
+          <td>0.0</td><td>2.0</td><td>2.0</td>
+          <td>100%</td><td>1.0</td><td>4.6</td>
         </tr>
         <tr>
           <td>Cities</td><td>5</td>
-          <td>2.2</td><td>100%</td>
-          <td>5.0</td><td>9.8</td>
+          <td>0.0</td><td>2.0</td><td>2.0</td>
+          <td>100%</td><td>4.2</td><td>9.0</td>
         </tr>
         <tr>
           <td>Films</td><td>5</td>
-          <td>3.0</td><td>100%</td>
-          <td>1.0</td><td>12.8</td>
+          <td>0.0</td><td>2.0</td><td>2.0</td>
+          <td>100%</td><td>1.2</td><td>18.2</td>
         </tr>
         <tr>
           <td>Animals</td><td>3</td>
-          <td>5.0</td><td>67%</td>
-          <td>1.7</td><td>7.3</td>
+          <td>0.0</td><td>5.0</td><td>5.0</td>
+          <td>67%</td><td>1.7</td><td>7.3</td>
         </tr>
       </tbody>
     </table>
@@ -276,7 +276,7 @@ python -m pytest tests/ -v            # run tests</code></pre>
       <li><strong>P910 (topic's main category) coverage:</strong> The analysis relies on P31 (instance of) classes having P910 (topic's main category) properties. Classes without P910 (topic's main category) are invisible to this comparison.</li>
       <li><strong>Sample size:</strong> The animals domain returned only 3 items due to SPARQL query constraints. Results for this domain are not statistically robust.</li>
       <li><strong>API rate limits:</strong> All requests include rate limiting and a descriptive User-Agent header.</li>
-      <li><strong>Snapshot in time:</strong> Both Wikidata and Wikipedia change constantly; results reflect the data at acquisition time (2026-04-05 23:11 UTC).</li>
+      <li><strong>Snapshot in time:</strong> Both Wikidata and Wikipedia change constantly; results reflect the data at acquisition time (2026-04-05 23:50 UTC).</li>
       <li><strong>Category hierarchy ceiling:</strong> Parent-category traversal is capped at 5 levels. Items that do not match within this window may match at greater depth.</li>
     </ul>
   </div>

@@ -64,10 +64,17 @@ def build_dataset(domain_name: str, limit: int = 500, delay: float = 1.0) -> pd.
         p31_qids = [c["qid"] for c in item["p31_classes"]]
 
         # Collect all P910-derived Wikipedia categories for this item's P31 classes
+        # and track the minimum P279 depth needed to reach a P910 link
         expected_cats = set()
+        min_p279_depth = float("inf")
         for p31_qid in p31_qids:
             if p31_qid in p910_by_class:
                 expected_cats.update(p910_by_class[p31_qid])
+                for cat, d in p910_depth_by_class[p31_qid].items():
+                    if d < min_p279_depth:
+                        min_p279_depth = d
+        if min_p279_depth == float("inf"):
+            min_p279_depth = -1
 
         # Build Wikipedia category hierarchy for this item
         wp_levels: dict[int, list[str]] = {0: cats}
@@ -89,7 +96,9 @@ def build_dataset(domain_name: str, limit: int = 500, delay: float = 1.0) -> pd.
             "wikipedia_categories": "|".join(cats),
             "p31_count": len(p31_labels),
             "category_count": len(cats),
-            "p910_depth": depth_result["min_depth"],
+            "p279_depth": int(min_p279_depth),
+            "wp_depth": depth_result["min_depth"],
+            "p910_depth": (int(min_p279_depth) + depth_result["min_depth"]) if min_p279_depth >= 0 and depth_result["min_depth"] >= 0 else -1,
             "p910_matched_category": depth_result["matched_category"],
         })
 
