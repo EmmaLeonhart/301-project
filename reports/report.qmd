@@ -11,6 +11,10 @@ format:
     toc: true
 ---
 
+[Download PDF version](report.pdf){.btn .btn-primary}
+&nbsp;&nbsp;|&nbsp;&nbsp;
+[View source on GitHub](https://github.com/EmmaLeonhart/301-project)
+
 ## Introduction
 
 This report compares Wikidata's P31 (instance of) ontological classification with English Wikipedia's category system across multiple domains. We use two complementary measures: **surface overlap** (do P31 labels appear as substrings in Wikipedia category names?) and **ontology hop distance** (how many hops up the P279 subclass / parent-category hierarchies before the two systems converge?). The pipeline runs periodically via GitHub Actions, re-querying both APIs to capture changes over time.
