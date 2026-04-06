@@ -91,8 +91,8 @@
   <div class="container">
     <h2>Analytics Questions</h2>
     <ol>
-      <li><strong>Do Wikipedia categories line up with the Wikidata ontology?</strong> &mdash; We follow Wikidata's P910 (topic's main category) link from each P31 class to its corresponding Wikipedia category and check whether items are actually placed in that category.</li>
-      <li><strong>Do they align more in certain domains?</strong> &mdash; We sample five domains (animals, films, cities, chemical elements, albums) and compare how many steps up the Wikipedia category tree are needed to find the P910-predicted category.</li>
+      <li><strong>Do Wikipedia categories line up with the Wikidata ontology?</strong> &mdash; We follow Wikidata's P910 (topic's main category) link from each P31 (instance of) class to its corresponding Wikipedia category and check whether items are actually placed in that category.</li>
+      <li><strong>Do they align more in certain domains?</strong> &mdash; We sample five domains (animals, films, cities, chemical elements, albums) and compare how many steps up the Wikipedia category tree are needed to find the P910 (topic's main category) predicted category.</li>
       <li><strong>Are some categories of information easier to categorize than others?</strong> &mdash; We measure depth variance within each domain to identify which areas have consistent vs. inconsistent classification.</li>
     </ol>
   </div>
@@ -107,7 +107,7 @@
     <div class="card-grid">
       <div class="card">
         <h4>Wikidata</h4>
-        <p>SPARQL queries against the <a href="https://query.wikidata.org/">Wikidata Query Service</a> fetch items that are <code>P31</code> (instance&nbsp;of) a target class, their P31 values, and the <code>P910</code> (topic's main category) links on those classes.</p>
+        <p>SPARQL queries against the <a href="https://query.wikidata.org/">Wikidata Query Service</a> fetch items that are <code>P31 (instance of)</code> a target class, their P31 (instance of) values, and the <code>P910 (topic's main category)</code> links on those classes.</p>
       </div>
       <div class="card">
         <h4>English Wikipedia</h4>
@@ -127,12 +127,12 @@
       </tbody>
     </table>
 
-    <h3>P910 Category Matching</h3>
-    <p>For each item, we follow its P31 class's <code>P910</code> (topic's main category) property to find the Wikidata item for the corresponding Wikipedia category. We then use that item's English Wikipedia sitelink to get the actual category name (e.g. <code>Q7378</code> &rarr; <code>Category:Mammals</code>). If the P31 class lacks P910, we walk up the <code>P279</code> (subclass of) hierarchy until we find a class that has one.</p>
-    <p>We then check whether the item is directly in that Wikipedia category. If not, we walk up the parent-category chain and report the <strong>depth</strong> at which the P910-predicted category first appears:</p>
-    <pre><code>depth = 0  &rarr;  item is directly in the P910 category
-depth = 1  &rarr;  P910 category is one level up (parent of a direct category)
-depth = N  &rarr;  P910 category is N levels up the hierarchy</code></pre>
+    <h3>P910 (topic's main category) Matching</h3>
+    <p>For each item, we follow its P31 (instance of) class's <code>P910 (topic's main category)</code> property to find the Wikidata item for the corresponding Wikipedia category. We then use that item's English Wikipedia sitelink to get the actual category name (e.g. <code>Q7378</code> &rarr; <code>Category:Mammals</code>). If the P31 (instance of) class lacks P910 (topic's main category), we walk up the <code>P279 (subclass of)</code> hierarchy until we find a class that has one.</p>
+    <p>We then check whether the item is directly in that Wikipedia category. If not, we walk up the parent-category chain and report the <strong>depth</strong> at which the P910 (topic's main category) predicted category first appears:</p>
+    <pre><code>depth = 0  &rarr;  item is directly in the P910 (topic's main category) category
+depth = 1  &rarr;  P910 (topic's main category) category is one level up (parent of a direct category)
+depth = N  &rarr;  P910 (topic's main category) category is N levels up the hierarchy</code></pre>
   </div>
 </section>
 
@@ -152,10 +152,10 @@ depth = N  &rarr;  P910 category is N levels up the hierarchy</code></pre>
     </div>
 
     <h3>Step 1: Acquire</h3>
-    <p><code>src/wikidata.py</code> sends SPARQL queries to fetch P31 items with English Wikipedia sitelinks, then resolves <code>P910</code> category links for each P31 class (walking up <code>P279</code> if needed). <code>src/wikipedia.py</code> fetches categories and parent-category chains via the Wikipedia API.</p>
+    <p><code>src/wikidata.py</code> sends SPARQL queries to fetch P31 (instance of) items with English Wikipedia sitelinks, then resolves <code>P910 (topic's main category)</code> links for each P31 (instance of) class (walking up <code>P279 (subclass of)</code> if needed). <code>src/wikipedia.py</code> fetches categories and parent-category chains via the Wikipedia API.</p>
 
     <h3>Step 2: Merge &amp; Clean</h3>
-    <p><code>src/etl.py</code> joins Wikidata P31/P910 data with Wikipedia categories into a single DataFrame, computing depth to P910 match for each item.</p>
+    <p><code>src/etl.py</code> joins Wikidata P31 (instance of) / P910 (topic's main category) data with Wikipedia categories into a single DataFrame, computing depth to P910 (topic's main category) match for each item.</p>
 
     <h3>Step 3: Analyze</h3>
     <p><code>src/analysis.py</code> computes per-item overlap ratios and domain-level summaries (mean depth, match rates).</p>
@@ -179,10 +179,10 @@ python -m pytest tests/ -v            # run tests</code></pre>
     <div class="card-grid">
       <div class="card"><div class="stat">23</div><div class="label">Total items analyzed</div></div>
       <div class="card"><div class="stat">5</div><div class="label">Domains compared</div></div>
-      <div class="card"><div class="stat">2.1</div><div class="label">Overall mean depth to P910 match</div></div>
+      <div class="card"><div class="stat">2.1</div><div class="label">Overall mean depth to P910 (topic's main category) match</div></div>
     </div>
 
-    <h3>Mean Steps to P910 Category by Domain</h3>
+    <h3>Mean Steps to P910 (topic's main category) by Domain</h3>
     <div class="bar-chart">
       <div class="bar-row">
         <div class="bar-label">Animals</div>
@@ -209,7 +209,7 @@ python -m pytest tests/ -v            # run tests</code></pre>
     <h3>Domain Summary</h3>
     <table>
       <thead>
-        <tr><th>Domain</th><th>Items</th><th>Mean Depth</th><th>Match Rate</th><th>Mean P31 Count</th><th>Mean Categories</th></tr>
+        <tr><th>Domain</th><th>Items</th><th>Mean Depth</th><th>Match Rate</th><th>Mean P31 (instance of) Count</th><th>Mean Categories</th></tr>
       </thead>
       <tbody>
         <tr>
@@ -242,8 +242,8 @@ python -m pytest tests/ -v            # run tests</code></pre>
 
     <h3>Key Observations</h3>
     <ol>
-      <li><strong>Chemical elements align directly.</strong> The P910-predicted category appears on every item at depth 0. This domain is small, well-defined, and tightly curated on both systems.</li>
-      <li><strong>Albums and cities need 2&ndash;3 steps.</strong> Wikipedia files albums under year/genre subcategories ("2024 pop albums") and cities under geographic subcategories ("Cities in Bavaria") rather than the broad P910 category.</li>
+      <li><strong>Chemical elements align directly.</strong> The P910 (topic's main category) predicted category appears on every item at depth 0. This domain is small, well-defined, and tightly curated on both systems.</li>
+      <li><strong>Albums and cities need 2&ndash;3 steps.</strong> Wikipedia files albums under year/genre subcategories ("2024 pop albums") and cities under geographic subcategories ("Cities in Bavaria") rather than the broad P910 (topic's main category).</li>
       <li><strong>Films need about 3 steps.</strong> Same pattern as albums &mdash; Wikipedia uses fine-grained year/genre categories rather than a single "Films" category.</li>
       <li><strong>Animals diverge the most (~5 steps).</strong> Wikipedia organizes animals by geography and conservation status ("Mammals of Japan") rather than by biological classification, which is Wikidata's approach.</li>
       <li><strong>The pattern:</strong> domains where Wikipedia uses broad, type-based categories align directly with Wikidata. Domains where Wikipedia favors specific browsing categories (by year, by country) diverge at the surface but converge higher up the hierarchy.</li>
@@ -253,7 +253,7 @@ python -m pytest tests/ -v            # run tests</code></pre>
     <div class="card-grid">
       <div class="card">
         <h4>Q1: Do Wikipedia categories line up with Wikidata ontology?</h4>
-        <p><strong>Sometimes directly, always eventually.</strong> Following P910 links, every domain converges &mdash; the question is how many steps up the Wikipedia category tree it takes. Chemical elements match at depth 0; animals need ~5 levels.</p>
+        <p><strong>Sometimes directly, always eventually.</strong> Following P910 (topic's main category) links, every domain converges &mdash; the question is how many steps up the Wikipedia category tree it takes. Chemical elements match at depth 0; animals need ~5 levels.</p>
       </div>
       <div class="card">
         <h4>Q2: Do they align more in certain domains?</h4>
@@ -273,7 +273,7 @@ python -m pytest tests/ -v            # run tests</code></pre>
     <h2>Ethics &amp; Limitations</h2>
     <ul>
       <li><strong>Cultural bias:</strong> Only English Wikipedia is analyzed, reflecting the interests and knowledge of English-speaking editors.</li>
-      <li><strong>P910 coverage:</strong> The analysis relies on P31 classes having P910 properties. Classes without P910 are invisible to this comparison.</li>
+      <li><strong>P910 (topic's main category) coverage:</strong> The analysis relies on P31 (instance of) classes having P910 (topic's main category) properties. Classes without P910 (topic's main category) are invisible to this comparison.</li>
       <li><strong>Sample size:</strong> The animals domain returned only 3 items due to SPARQL query constraints. Results for this domain are not statistically robust.</li>
       <li><strong>API rate limits:</strong> All requests include rate limiting and a descriptive User-Agent header.</li>
       <li><strong>Snapshot in time:</strong> Both Wikidata and Wikipedia change constantly; results reflect the data at acquisition time (2026-04-05 23:11 UTC).</li>
