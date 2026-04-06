@@ -1,7 +1,7 @@
 """Tests for the analysis module — no network calls needed."""
 
 import pandas as pd
-from src.analysis import p31_category_overlap, domain_summary, compute_hop_distance
+from src.analysis import p910_category_overlap, domain_summary, compute_category_depth
 
 
 def _sample_df():
@@ -13,9 +13,13 @@ def _sample_df():
             "domain": "animals",
             "p31_classes": "animal|mammal",
             "p31_qids": "Q729|Q7377",
+            "p910_categories": "Animals|Mammals",
+            "p910_count": 2,
             "wikipedia_categories": "Animals|Mammals|Endangered species",
             "p31_count": 2,
             "category_count": 3,
+            "p910_depth": 0,
+            "p910_matched_category": "Animals",
         },
         {
             "qid": "Q2",
@@ -24,9 +28,13 @@ def _sample_df():
             "domain": "films",
             "p31_classes": "film",
             "p31_qids": "Q11424",
+            "p910_categories": "Films",
+            "p910_count": 1,
             "wikipedia_categories": "2020 films|Drama films",
             "p31_count": 1,
             "category_count": 2,
+            "p910_depth": -1,
+            "p910_matched_category": "",
         },
         {
             "qid": "Q3",
@@ -35,56 +43,45 @@ def _sample_df():
             "domain": "cities",
             "p31_classes": "city|big city",
             "p31_qids": "Q515|Q1549591",
+            "p910_categories": "Cities",
+            "p910_count": 1,
             "wikipedia_categories": "Cities|Populated places",
             "p31_count": 2,
             "category_count": 2,
+            "p910_depth": 0,
+            "p910_matched_category": "Cities",
         },
     ])
 
 
-def test_p31_category_overlap_adds_columns():
+def test_p910_overlap_adds_columns():
     df = _sample_df()
-    result = p31_category_overlap(df)
+    result = p910_category_overlap(df)
     assert "overlap_count" in result.columns
     assert "overlap_ratio" in result.columns
+    assert "matched_categories" in result.columns
     assert len(result) == 3
 
 
-def test_p31_category_overlap_substring_matching():
+def test_p910_overlap_exact_match():
+    """P910 categories that are in Wikipedia categories should match."""
     df = _sample_df()
-    result = p31_category_overlap(df)
-    # Q1: "animal" is substring of "Animals" (case-insensitive) -> match
-    # "mammal" is substring of "Mammals" -> match
+    result = p910_category_overlap(df)
+
+    # Q1: P910 gives "Animals" and "Mammals", both in Wikipedia categories
     q1 = result[result["qid"] == "Q1"].iloc[0]
     assert q1["overlap_count"] == 2
+    assert q1["overlap_ratio"] == 1.0
 
-    # Q2: "film" is substring of "2020 films" and "Drama films" -> match
+    # Q2: P910 gives "Films", but item has "2020 films" and "Drama films" — no exact match
     q2 = result[result["qid"] == "Q2"].iloc[0]
-    assert q2["overlap_count"] == 1
-    assert q2["overlap_ratio"] == 1.0
+    assert q2["overlap_count"] == 0
+    assert q2["overlap_ratio"] == 0.0
 
-    # Q3: "city" is NOT a substring of "cities" (different words), and
-    # "big city" is not in "Cities" or "Populated places"
+    # Q3: P910 gives "Cities", which is in Wikipedia categories
     q3 = result[result["qid"] == "Q3"].iloc[0]
-    assert q3["overlap_count"] == 0
-
-
-def test_p31_category_overlap_exact_match():
-    df = pd.DataFrame([{
-        "qid": "Q99",
-        "label": "Exact",
-        "enwiki_title": "Exact",
-        "domain": "test",
-        "p31_classes": "film|drama",
-        "p31_qids": "Q1|Q2",
-        "wikipedia_categories": "Film|Comedy",
-        "p31_count": 2,
-        "category_count": 2,
-    }])
-    result = p31_category_overlap(df)
-    q = result.iloc[0]
-    assert q["overlap_count"] == 1  # "film" matches "Film"
-    assert q["overlap_ratio"] == 0.5
+    assert q3["overlap_count"] == 1
+    assert q3["overlap_ratio"] == 1.0
 
 
 def test_domain_summary():
@@ -95,82 +92,68 @@ def test_domain_summary():
     assert all(result["item_count"] == 1)
 
 
-def test_empty_p31():
+def test_empty_p910():
     df = pd.DataFrame([{
         "qid": "Q0",
         "label": "Empty",
         "enwiki_title": "Empty",
         "domain": "test",
-        "p31_classes": "",
-        "p31_qids": "",
+        "p31_classes": "something",
+        "p31_qids": "Q1",
+        "p910_categories": "",
+        "p910_count": 0,
         "wikipedia_categories": "Something",
-        "p31_count": 0,
+        "p31_count": 1,
         "category_count": 1,
+        "p910_depth": -1,
+        "p910_matched_category": "",
     }])
-    result = p31_category_overlap(df)
+    result = p910_category_overlap(df)
     assert result.iloc[0]["overlap_ratio"] == 0.0
 
 
-# --- Hop distance tests ---
+# --- Category depth tests ---
 
-def test_hop_distance_immediate_match():
-    """Depth 0 on both sides — direct P31 label in direct category."""
-    wd = {0: ["film"]}
-    wp = {0: ["2020 films", "Drama films"]}
-    result = compute_hop_distance(wd, wp)
-    assert result["total_hops"] == 0
-    assert result["hops_wikidata"] == 0
-    assert result["hops_wikipedia"] == 0
-    assert result["match_label"] == "film"
+def test_category_depth_direct_match():
+    """P910 category found at depth 0 (direct Wikipedia category)."""
+    p910 = {"Films"}
+    wp = {0: ["Films", "2020 films"]}
+    result = compute_category_depth(p910, wp)
+    assert result["min_depth"] == 0
+    assert result["matched_category"] == "Films"
 
 
-def test_hop_distance_wikidata_climb():
-    """No match at depth 0, but Wikidata ancestor at depth 1 matches."""
-    wd = {0: ["Animalia"], 1: ["organism"]}
-    wp = {0: ["Organisms of Asia", "Endangered species"]}
-    result = compute_hop_distance(wd, wp)
-    assert result["total_hops"] == 1
-    assert result["hops_wikidata"] == 1
-    assert result["hops_wikipedia"] == 0
-    assert result["match_label"] == "organism"
+def test_category_depth_parent_match():
+    """P910 category found in parent categories (depth 1)."""
+    p910 = {"Films"}
+    wp = {0: ["2020 films", "Drama films"], 1: ["Films", "Films by year"]}
+    result = compute_category_depth(p910, wp)
+    assert result["min_depth"] == 1
+    assert result["matched_category"] == "Films"
 
 
-def test_hop_distance_wikipedia_climb():
-    """No match at depth 0, but Wikipedia parent at depth 1 matches."""
-    wd = {0: ["chemical element"]}
-    wp = {0: ["Alkaline earth metals"], 1: ["Chemical elements"]}
-    result = compute_hop_distance(wd, wp)
-    assert result["total_hops"] == 1
-    assert result["hops_wikidata"] == 0
-    assert result["hops_wikipedia"] == 1
-    assert result["match_label"] == "chemical element"
+def test_category_depth_deep_match():
+    """P910 category found at depth 2."""
+    p910 = {"Animals"}
+    wp = {0: ["Mammals of Japan"], 1: ["Mammals by country"], 2: ["Animals", "Mammals"]}
+    result = compute_category_depth(p910, wp)
+    assert result["min_depth"] == 2
+    assert result["matched_category"] == "Animals"
 
 
-def test_hop_distance_both_climb():
-    """Need to go up on both sides to find a match."""
-    wd = {0: ["big city"], 1: ["city"], 2: ["human settlement"]}
-    wp = {0: ["Populated places in Bavaria"], 1: ["Human settlements in Germany"]}
-    result = compute_hop_distance(wd, wp)
-    # "human settlement" (wd depth 2) matches "Human settlements in Germany" (wp depth 1)
-    # total = 3. But "city" (wd depth 1) doesn't match anything at wp depth 0 or 1.
-    # Let's check: total=1 → (1,0): "city" vs wp[0]? "city" in "Populated places in Bavaria"? No.
-    # total=2 → (1,1): "city" vs "Human settlements in Germany"? No.
-    #           (2,0): "human settlement" vs "Populated places in Bavaria"? No.
-    # total=3 → (2,1): "human settlement" vs "Human settlements in Germany"? Yes!
-    assert result["total_hops"] == 3
-    assert result["hops_wikidata"] == 2
-    assert result["hops_wikipedia"] == 1
+def test_category_depth_no_match():
+    """P910 category not found anywhere in the hierarchy."""
+    p910 = {"Chemical elements"}
+    wp = {0: ["Rodents of Europe"], 1: ["Rodents"]}
+    result = compute_category_depth(p910, wp)
+    assert result["min_depth"] == -1
+    assert result["matched_category"] == ""
 
 
-def test_hop_distance_no_match():
-    """No convergence found."""
-    wd = {0: ["taxon"]}
-    wp = {0: ["Rodents of Europe"]}
-    result = compute_hop_distance(wd, wp)
-    assert result["total_hops"] == -1
+def test_category_depth_empty():
+    """Empty inputs."""
+    result = compute_category_depth(set(), {})
+    assert result["min_depth"] == -1
 
-
-def test_hop_distance_empty():
-    """Empty levels."""
-    result = compute_hop_distance({}, {})
-    assert result["total_hops"] == -1
+    result = compute_category_depth({"Films"}, {})
+    assert result["min_depth"] == -1

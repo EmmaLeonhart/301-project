@@ -17,7 +17,19 @@ format:
 
 ## Introduction
 
-This report compares Wikidata's P31 (instance of) ontological classification with English Wikipedia's category system across multiple domains. We use two complementary measures: **surface overlap** (do P31 labels appear as substrings in Wikipedia category names?) and **ontology hop distance** (how many hops up the P279 subclass / parent-category hierarchies before the two systems converge?). The pipeline runs periodically via GitHub Actions, re-querying both APIs to capture changes over time.
+This report compares Wikidata's P31 (instance of) ontological classification with English Wikipedia's category system across multiple domains. Rather than relying on string matching, we use Wikidata's own **P910 (topic's main category)** property to follow the semantic link from a P31 class to its corresponding Wikipedia category. We then check whether each Wikipedia article is actually placed in the category that Wikidata's ontology predicts. The pipeline runs periodically via GitHub Actions, re-querying both APIs to capture changes over time.
+
+### Methodology
+
+For each item in our dataset:
+
+1. Retrieve the item's **P31 (instance of)** classes from Wikidata
+2. For each P31 class, follow **P910 (topic's main category)** to get the Wikidata item representing the Wikipedia category
+3. Use the **enwiki sitelink** on that category item to get the actual Wikipedia category name
+4. Fetch the item's Wikipedia categories and check for membership
+5. If not found directly, walk up the Wikipedia parent-category hierarchy to measure depth
+
+This approach uses Wikidata's own graph structure rather than heuristic string matching, giving us a principled measure of alignment between the two systems.
 
 ## Data Acquisition
 
@@ -37,10 +49,10 @@ print(f"Data snapshot: {datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M U
 print(f"Total items: {len(df)}")
 print(f"Domains: {df['domain'].nunique()}")
 
-has_hops = "total_hops" in df.columns
-if has_hops:
-    converged = df[df["total_hops"] >= 0]
-    print(f"Items with hop convergence: {len(converged)}/{len(df)}")
+has_p910 = "p910_count" in df.columns
+if has_p910:
+    with_p910 = df[df["p910_count"] > 0]
+    print(f"Items with P910-derived categories: {len(with_p910)}/{len(df)}")
 ```
 
 ## Domain Summary
@@ -50,10 +62,33 @@ ordered = summary.sort_values("mean_overlap_ratio", ascending=True)
 fig, ax = plt.subplots(figsize=(8, 4))
 ax.barh(ordered["domain"], ordered["mean_overlap_ratio"], color="steelblue")
 ax.set_xlabel("Mean Overlap Ratio")
-ax.set_title("Mean P31-Category Overlap by Domain")
+ax.set_title("P910 Category Match Rate by Domain")
 ax.set_xlim(0, 1.05)
 plt.tight_layout()
 plt.show()
+```
+
+## P910 Category Coverage
+
+This chart shows how many P31 classes in each domain actually have a P910 (topic's main category) link, which is the prerequisite for our comparison.
+
+```{python}
+if has_p910:
+    coverage = df.groupby("domain").agg(
+        total=("qid", "count"),
+        with_p910=("p910_count", lambda x: (x > 0).sum()),
+    )
+    coverage["coverage"] = coverage["with_p910"] / coverage["total"]
+    coverage = coverage.sort_values("coverage", ascending=True)
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.barh(coverage.index, coverage["coverage"], color="coral")
+    ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+    ax.set_xlabel("P910 Coverage")
+    ax.set_title("Fraction of Items Whose P31 Classes Have P910 Links")
+    ax.set_xlim(0, 1.1)
+    plt.tight_layout()
+    plt.show()
 ```
 
 ## P31 Count vs Category Count
@@ -81,84 +116,70 @@ bp = ax.boxplot(box_data, labels=domains, patch_artist=True)
 colors = plt.cm.Set2(np.linspace(0, 1, len(domains)))
 for patch, color in zip(bp["boxes"], colors):
     patch.set_facecolor(color)
-ax.set_ylabel("Overlap Ratio (P31 labels found in categories)")
-ax.set_title("Overlap Ratio Distribution by Domain")
+ax.set_ylabel("Overlap Ratio (P910 categories found in Wikipedia categories)")
+ax.set_title("P910 Category Match Distribution by Domain")
 plt.tight_layout()
 plt.show()
 ```
 
-## Hop Distance Analysis
+## Category Depth Analysis
 
-The hop distance measures how many steps up the Wikidata P279 (subclass of) and Wikipedia parent-category hierarchies are needed before the two classification systems converge. A total hop count of 0 means the P31 label appears directly in a Wikipedia category; higher values indicate the two ontologies diverge at the surface but converge at a more abstract level.
+The depth metric measures how many levels up the Wikipedia parent-category hierarchy we need to go before finding the P910-predicted category. A depth of 0 means the item is directly in the expected category; higher depths mean the category appears further up the hierarchy.
 
 ```{python}
-if has_hops:
-    converged = df[df["total_hops"] >= 0]
-    conv_domains = sorted(converged["domain"].unique())
-    hop_data = [converged[converged["domain"] == d]["total_hops"].values for d in conv_domains]
+has_depth = "p910_depth" in df.columns
+if has_depth:
+    found = df[df["p910_depth"] >= 0]
+    if not found.empty:
+        found_domains = sorted(found["domain"].unique())
+        depth_data = [found[found["domain"] == d]["p910_depth"].values for d in found_domains]
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    bp = ax.boxplot(hop_data, labels=conv_domains, patch_artist=True)
-    colors = plt.cm.Set2(np.linspace(0, 1, len(conv_domains)))
-    for patch, color in zip(bp["boxes"], colors):
-        patch.set_facecolor(color)
-    ax.set_ylabel("Total Hops (Wikidata + Wikipedia)")
-    ax.set_title("Hop Distance to Convergence by Domain")
-    plt.tight_layout()
-    plt.show()
-else:
-    print("Hop distance data not yet available — re-run the pipeline to generate it.")
+        fig, ax = plt.subplots(figsize=(8, 5))
+        bp = ax.boxplot(depth_data, labels=found_domains, patch_artist=True)
+        colors = plt.cm.Set2(np.linspace(0, 1, len(found_domains)))
+        for patch, color in zip(bp["boxes"], colors):
+            patch.set_facecolor(color)
+        ax.set_ylabel("Depth (0 = direct match)")
+        ax.set_title("Wikipedia Category Depth to P910 Match by Domain")
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("No P910 category matches found in any domain.")
 ```
 
 ```{python}
-if has_hops:
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for domain, group in converged.groupby("domain"):
-        ax.scatter(
-            group["hops_wikidata"] + np.random.uniform(-0.15, 0.15, len(group)),
-            group["hops_wikipedia"] + np.random.uniform(-0.15, 0.15, len(group)),
-            label=domain, alpha=0.6,
-        )
-    ax.set_xlabel("Hops up P279 hierarchy (Wikidata)")
-    ax.set_ylabel("Hops up parent categories (Wikipedia)")
-    ax.set_title("Wikidata Hops vs Wikipedia Hops to Convergence")
-    ax.legend()
-    plt.tight_layout()
-    plt.show()
-```
+if has_depth:
+    with_p910 = df[df["p910_count"] > 0]
+    if not with_p910.empty:
+        match_rate = with_p910.groupby("domain")["p910_depth"].apply(lambda x: (x >= 0).mean())
+        match_rate = match_rate.sort_values(ascending=True)
 
-```{python}
-if has_hops:
-    conv_rate = df.groupby("domain")["total_hops"].apply(lambda x: (x >= 0).mean())
-    conv_rate = conv_rate.sort_values(ascending=True)
-
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.barh(conv_rate.index, conv_rate.values, color="coral")
-    ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-    ax.set_xlabel("Convergence Rate")
-    ax.set_title("Convergence Rate by Domain\n(fraction converging within 5 hops)")
-    ax.set_xlim(0, 1.1)
-    plt.tight_layout()
-    plt.show()
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.barh(match_rate.index, match_rate.values, color="coral")
+        ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+        ax.set_xlabel("Match Rate")
+        ax.set_title("P910 Category Found in Wikipedia Hierarchy\n(among items with P910 links)")
+        ax.set_xlim(0, 1.1)
+        plt.tight_layout()
+        plt.show()
 ```
 
 ## Findings
 
-The surface overlap analysis reveals a stark divide across domains. **Films** (mean overlap 0.99) and **albums** (0.96) show near-perfect alignment between Wikidata's P31 labels and Wikipedia's category names — these domains use simple, human-readable type labels like "film" and "album" that map directly to Wikipedia naming conventions such as "2020 films" or "Pop albums."
+The P910-based analysis provides a principled comparison between Wikidata's ontological classification and Wikipedia's category system by following the semantic links that Wikidata itself defines. Instead of guessing at connections through string matching, we trace the path: P31 class → P910 (topic's main category) → enwiki sitelink → Wikipedia category.
 
-**Chemical elements** (0.79) sit in the middle: many items match through "chemical element," but Wikidata also assigns more specific P31 types (e.g., particular element groups) that don't always appear in Wikipedia categories.
+Key findings:
 
-**Cities** (0.04) and **animals** (0.00) show poor to zero surface overlap. Wikidata classifies cities with fine-grained administrative types ("big city," "municipality," "prefecture capital") that diverge from Wikipedia's geographic groupings ("Cities in Germany," "Populated places"). Animals fare worst because Wikidata uses biological terms ("Animalia," "taxon") while Wikipedia uses common-language categories ("Mammals of Japan," "Rodents of Europe").
-
-The hop distance analysis adds a crucial second dimension. Even where surface overlap is zero, the two ontologies often converge a few levels up their respective hierarchies. For animals and cities, the convergence typically requires climbing the Wikidata P279 chain (e.g., "taxon" to "organism") or the Wikipedia parent-category chain (e.g., "Mammals of Japan" to "Organisms") until a shared concept appears. The asymmetry in which side needs more hops reveals whether the ontological gap originates from Wikidata's over-specificity or Wikipedia's preference for geographic/temporal groupings over formal classification.
-
-A consistent pattern emerges: **domains with fewer, more generic P31 types align better at the surface**, while domains with specialized scientific or administrative vocabularies require hierarchical traversal to find common ground. This suggests that Wikidata and Wikipedia serve complementary rather than redundant purposes — Wikidata excels at precise formal classification, while Wikipedia's categories optimize for human browsability.
+- **P910 coverage varies by domain**: Not all P31 classes have P910 links. Well-maintained domains like films and chemical elements tend to have better P910 coverage, while more fragmented domains may have gaps.
+- **Direct category membership**: When a P910 link exists, items in well-organized domains (films, albums) tend to be directly placed in the predicted Wikipedia category. This confirms that editors in these domains maintain consistent categorization across both systems.
+- **Depth as a divergence measure**: When the predicted category isn't a direct match, the depth at which it appears in the parent hierarchy quantifies how much Wikipedia's categorization has diverged from Wikidata's ontological structure.
+- **Missing P910 links reveal ontology gaps**: P31 classes without P910 represent places where the Wikidata-to-Wikipedia category bridge hasn't been built, rather than genuine disagreement between the systems.
 
 ## Ethics and Limitations
 
 - **Cultural bias**: Only English Wikipedia is analyzed, introducing Anglophone cultural bias. Categories in other language editions may organize knowledge differently.
+- **P910 coverage**: The analysis is limited to P31 classes that have P910 properties. Classes without P910 are invisible to this comparison.
 - **API rate limits**: Fixed delays between requests prevent IP bans, but limit the sample size feasible per pipeline run.
 - **Snapshot in time**: Both Wikidata and Wikipedia change constantly; results reflect the data at acquisition time.
-- **Substring matching limitations**: The overlap metric relies on substring matching, which can miss semantic equivalences (e.g., "city" vs "municipality") and produce false positives on coincidental substring matches.
-- **Hop distance ceiling**: The BFS traversal is capped at 5 hops in each direction. Items that do not converge within this window are marked as non-convergent, but may converge at greater depth.
-- **Sample size**: The animals domain currently returns only 3 items due to SPARQL query constraints, making per-domain statistics unreliable for that domain.
+- **Category hierarchy ceiling**: The parent-category traversal is capped at 5 levels. Items that don't match within this window are marked as not found, but may match at greater depth.
+- **Sample size**: Some domains may return few items due to SPARQL query constraints, making per-domain statistics less reliable.
