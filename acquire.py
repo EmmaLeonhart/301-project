@@ -29,20 +29,21 @@ def main():
     print("\nDomain summary:")
     print(summary.to_string(index=False))
 
-    # Hop distance stats
-    converged = df[df["total_hops"] >= 0]
-    no_match = df[df["total_hops"] < 0]
-    print(f"\nHop distance analysis:")
-    print(f"  Converged: {len(converged)}/{len(df)} items")
-    print(f"  No match within 5 hops: {len(no_match)}/{len(df)} items")
-    if not converged.empty:
-        print(f"  Mean hops to convergence: {converged['total_hops'].mean():.2f}")
-        print(f"  Median hops: {converged['total_hops'].median():.1f}")
-        print(f"\n  Per domain:")
-        for domain, group in converged.groupby("domain"):
-            print(f"    {domain}: mean={group['total_hops'].mean():.2f}, "
-                  f"median={group['total_hops'].median():.1f}, "
-                  f"converged={len(group)}/{len(df[df['domain'] == domain])}")
+    # Hop distance stats (only if the column exists — old data may lack it)
+    if "total_hops" in df.columns:
+        converged = df[df["total_hops"] >= 0]
+        no_match = df[df["total_hops"] < 0]
+        print(f"\nHop distance analysis:")
+        print(f"  Converged: {len(converged)}/{len(df)} items")
+        print(f"  No match within 5 hops: {len(no_match)}/{len(df)} items")
+        if not converged.empty:
+            print(f"  Mean hops to convergence: {converged['total_hops'].mean():.2f}")
+            print(f"  Median hops: {converged['total_hops'].median():.1f}")
+            print(f"\n  Per domain:")
+            for domain, group in converged.groupby("domain"):
+                print(f"    {domain}: mean={group['total_hops'].mean():.2f}, "
+                      f"median={group['total_hops'].median():.1f}, "
+                      f"converged={len(group)}/{len(df[df['domain'] == domain])}")
 
 
 if __name__ == "__main__":

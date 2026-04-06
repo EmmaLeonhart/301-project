@@ -102,11 +102,20 @@ def build_dataset(domain_name: str, limit: int = 500, delay: float = 1.0) -> pd.
 
 
 def build_all_domains(limit: int = 100, delay: float = 1.0) -> pd.DataFrame:
-    """Build dataset across all configured domains."""
+    """Build dataset across all configured domains.
+
+    Catches per-domain errors so that a failure in one domain does not
+    prevent the rest from being collected and saved.
+    """
     frames = []
     for domain_name in DOMAINS:
         print(f"Fetching domain: {domain_name}")
-        df = build_dataset(domain_name, limit=limit, delay=delay)
-        frames.append(df)
-        print(f"  Got {len(df)} items for {domain_name}")
+        try:
+            df = build_dataset(domain_name, limit=limit, delay=delay)
+            frames.append(df)
+            print(f"  Got {len(df)} items for {domain_name}")
+        except Exception as e:
+            print(f"  ERROR fetching {domain_name}: {e} — skipping")
+    if not frames:
+        raise RuntimeError("All domains failed to fetch")
     return pd.concat(frames, ignore_index=True)
