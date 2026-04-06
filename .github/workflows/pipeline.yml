@@ -25,6 +25,14 @@ jobs:
         run: python acquire.py 50
         continue-on-error: true
 
+      # Commit data immediately so it is preserved even if later steps fail
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet || git commit -m "Pipeline run: update data $(date -u +%Y-%m-%d)"
+
       # Quarto setup + render PDF
       - uses: quarto-dev/quarto-actions/setup@v2
       - name: Install R
@@ -40,11 +48,9 @@ jobs:
           quarto render reports/report.qmd --to pdf
           cp reports/report.pdf docs/report.pdf
 
-      # Commit updated data + report
-      - name: Commit results
+      # Commit report + push everything
+      - name: Commit report and push
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ reports/ docs/
-          git diff --staged --quiet || git commit -m "Pipeline run: update data and report $(date -u +%Y-%m-%d)"
+          git add reports/ docs/
+          git diff --staged --quiet || git commit -m "Pipeline run: update report $(date -u +%Y-%m-%d)"
           git push

@@ -7,7 +7,7 @@ Comparing Wikidata's formal P31 (instance of) ontology with English Wikipedia's
 crowd-sourced category system to measure how consistently different knowledge domains
 are classified across the two platforms.
 
-**[View the project site](https://emmaleonhart.github.io/301-project/)**
+**[View the project site](https://emmaleonhart.github.io/301-project/)** | **[Download report (PDF)](https://emmaleonhart.github.io/301-project/report.pdf)**
 
 ## Quick Start
 
@@ -68,4 +68,4 @@ docs/index.html             GitHub Pages site
 - **SutraDB** — Embeddable graph database for local RDF triple storage
 - **R + ggplot2** — Visualizations
 - **Quarto** — Reproducible report generation (renders to PDF)
-- **GitHub Actions** — CI and automated pipeline runs
+- **GitHub Actions** — CI and automated pipeline runs (data committed before report rendering to prevent data loss)
