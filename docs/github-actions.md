@@ -82,15 +82,17 @@ back to the repository.
 1. Checks out the repo
 2. Installs Python + dependencies
 3. Runs `python acquire.py 50` (fetches data from Wikidata + Wikipedia APIs)
-4. Installs Quarto + R + ggplot2
-5. Renders the Quarto report to PDF
-6. Copies the PDF to `docs/` for download from the project site
-7. Commits all updated files (CSVs, PDF) and pushes
+   - Uses `continue-on-error: true` — if the Wikidata SPARQL endpoint is down,
+     the pipeline continues with existing data
+4. **Commits data immediately** — preserves fresh CSVs even if later steps fail
+5. Installs Quarto + R + ggplot2 + TinyTeX (LaTeX distribution for PDF output)
+6. Renders the Quarto report to PDF
+7. Copies the PDF to `docs/` for download from the project site
+8. Commits the report and pushes both commits
 
-**Key detail:** The bot commits with the message `Pipeline run: update data and
-report 2026-04-05` (with the current date). Since the CSVs and PDF are tracked in
-git, every previous version is preserved in the commit history. The latest commit
-always has the most recent data.
+**Key detail:** Data and report are committed in separate steps. This two-commit
+approach ensures that data is never lost to a rendering failure. Since all files
+are tracked in git, every previous version is preserved in the commit history.
 
 **Why `workflow_dispatch`?** This adds a "Run workflow" button in the GitHub Actions
 tab, so you can trigger a run manually without waiting for the Monday schedule.
@@ -115,9 +117,11 @@ Monday 6 AM UTC (or manual trigger)
         ▼
 ┌─ pipeline.yml ──────────────────────────┐
 │  1. Fetch data from Wikidata + Wikipedia │
+│     (continue-on-error if API is down)  │
 │  2. Run analysis, save CSVs             │
-│  3. Render Quarto → PDF                 │
-│  4. Commit + push                       │
+│  3. Commit data (preserved immediately) │
+│  4. Install TinyTeX, render Quarto → PDF│
+│  5. Commit report + push                │
 └────────────────┬────────────────────────┘
                  │ (push to master, docs/ changed)
                  ▼

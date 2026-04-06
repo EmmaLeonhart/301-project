@@ -85,14 +85,21 @@ no external services beyond the Wikidata and Wikipedia APIs (which are public).
 # Simplified workflow
 - uses: actions/setup-python@v5
 - run: pip install -r requirements.txt
-- run: python acquire.py 50
+- run: python acquire.py 50        # continue-on-error: true
+- run: git add data/ && git commit  # commit data immediately
+- run: quarto install tinytex
 - run: quarto render reports/report.qmd --to pdf
-- run: git add data/ reports/ && git commit -m "Update data" && git push
+- run: git add reports/ docs/ && git commit && git push
 ```
 
-The generated PDF is committed to the repository. Since it's tracked in git, every
-previous version is preserved in history — the latest commit always has the most
-recent run.
+Data is committed immediately after acquisition, before the report rendering step.
+This means fresh data is preserved even if Quarto or TinyTeX fails. The report PDF
+is committed in a separate step afterward. Since both are tracked in git, every
+previous version is preserved in history.
+
+The acquisition step uses `continue-on-error: true` because the Wikidata SPARQL
+endpoint can return transient 502 errors. When this happens, the report renders
+from the existing committed data files instead.
 
 ## Graph Database Considerations
 
