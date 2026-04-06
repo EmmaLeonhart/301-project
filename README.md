@@ -57,7 +57,7 @@ src/
   sutradb_store.py          SutraDB graph database integration
 data/processed/             Output CSVs (tracked in git)
 tests/                      Unit tests (pytest)
-reports/report.qmd          Quarto report (R/ggplot2 visualizations)
+reports/report.qmd          Quarto report (Python/matplotlib visualizations)
 docs/index.html             GitHub Pages site
 ```
 
@@ -66,6 +66,6 @@ docs/index.html             GitHub Pages site
 - **Python** — pandas, SPARQLWrapper, requests (data pipeline)
 - **SPARQL** — Wikidata Query Service (graph queries)
 - **SutraDB** — Embeddable graph database for local RDF triple storage
-- **R + ggplot2** — Visualizations
+- **Python + matplotlib** — Visualizations
 - **Quarto** — Reproducible report generation (renders to PDF)
 - **GitHub Actions** — CI and automated pipeline runs (data committed before report rendering to prevent data loss)
