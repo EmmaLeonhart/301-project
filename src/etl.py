@@ -1,60 +1,61 @@
-"""ETL: merge Wikidata P31 data with Wikipedia categories, clean, and export."""
+"""ETL: merge Wikidata P31/P910 data with Wikipedia categories and export."""
 
 import pandas as pd
 
-from src.wikidata import fetch_domain, fetch_p279_chain, fetch_p31_values, DOMAINS
+from src.wikidata import fetch_domain, fetch_p910_chain, DOMAINS
 from src.wikipedia import fetch_categories, fetch_category_chain
-from src.analysis import compute_hop_distance
+from src.analysis import compute_category_depth
 
 
 def build_dataset(domain_name: str, limit: int = 500, delay: float = 1.0) -> pd.DataFrame:
     """Fetch and merge Wikidata + Wikipedia data for a domain.
 
-    Returns a DataFrame with columns:
-        qid, label, enwiki_title, domain, p31_classes, wikipedia_categories,
-        total_hops, hops_wikidata, hops_wikipedia, match_label, match_category
+    Uses the P910 approach:
+    1. Get each item's P31 (instance of) classes
+    2. For each P31 class, follow P910 (topic's main category) to get a Wikidata category item
+    3. Use that category item's enwiki sitelink to get the actual Wikipedia category name
+    4. Check whether the item is in that Wikipedia category (directly or via parent chain)
     """
     items = fetch_domain(domain_name, limit=limit, delay=delay)
 
-    # Collect all unique P31 QIDs across this domain for batch P279 traversal
+    # Collect all unique P31 QIDs across this domain
     p31_qid_set = set()
     for item in items:
         for c in item["p31_classes"]:
             p31_qid_set.add(c["qid"])
 
-    # Cache: P279 ancestor chain per unique P31 QID
-    # {qid: {0: [{'qid': ..., 'label': ...}], 1: [...], ...}}
-    print(f"  Fetching P279 hierarchy for {len(p31_qid_set)} unique P31 classes...")
-    p279_cache: dict[str, dict[int, list[dict]]] = {}
-    for p31_qid in p31_qid_set:
-        # Level 0 is the P31 value itself — we need its label
-        p31_info = [c for item in items for c in item["p31_classes"] if c["qid"] == p31_qid]
-        p31_label = p31_info[0]["label"] if p31_info else p31_qid
-        chain = fetch_p279_chain([p31_qid], max_depth=5, delay=delay)
-        chain[0] = [{"qid": p31_qid, "label": p31_label}]
-        p279_cache[p31_qid] = chain
+    # Fetch P910 links for all P31 classes (walking up P279 if needed)
+    print(f"  Fetching P910 category links for {len(p31_qid_set)} unique P31 classes...")
+    p910_results = fetch_p910_chain(list(p31_qid_set), max_depth=3, delay=delay)
 
-    # Cache: Wikipedia parent category chain per unique category
-    all_categories = set()
+    # Build lookup: P31 QID -> set of enwiki category names (from P910)
+    p910_by_class: dict[str, set[str]] = {}
+    p910_depth_by_class: dict[str, dict[str, int]] = {}  # class -> {cat_name: depth}
+    for entry in p910_results:
+        cls = entry["source_class"]
+        cat = entry["enwiki_category"]
+        depth = entry["depth"]
+        if cls not in p910_by_class:
+            p910_by_class[cls] = set()
+            p910_depth_by_class[cls] = {}
+        p910_by_class[cls].add(cat)
+        # Keep the shallowest depth for each category
+        if cat not in p910_depth_by_class[cls] or depth < p910_depth_by_class[cls][cat]:
+            p910_depth_by_class[cls][cat] = depth
+
+    # Fetch Wikipedia categories for each item
     cat_per_item = {}
     for item in items:
         cats = fetch_categories(item["enwiki_title"])
         cat_per_item[item["qid"]] = cats
+
+    # Fetch parent category chains for depth analysis
+    all_categories = set()
+    for cats in cat_per_item.values():
         all_categories.update(cats)
 
     print(f"  Fetching parent categories for {len(all_categories)} unique categories...")
-    wp_cache: dict[str, dict[int, list[str]]] = {}
-    cat_list = list(all_categories)
-    # Batch fetch parent chains — but each category's chain is independent,
-    # so we do a shared BFS from ALL categories at once, then split out per-category.
-    # Simpler approach: just fetch the combined chain and tag per starting category.
-    # Actually simplest: fetch one shared chain, use it for all items.
-    # Each item only cares about "at depth N from my categories, what's available?"
-    # So we can compute per-item levels by combining their specific starting categories
-    # with the shared parent chain.
-
-    # Build a shared BFS from all categories
-    combined_chain = fetch_category_chain(cat_list, max_depth=5, delay=0.5)
+    combined_chain = fetch_category_chain(list(all_categories), max_depth=5, delay=0.5)
 
     rows = []
     for item in items:
@@ -62,24 +63,19 @@ def build_dataset(domain_name: str, limit: int = 500, delay: float = 1.0) -> pd.
         p31_labels = [c["label"] for c in item["p31_classes"]]
         p31_qids = [c["qid"] for c in item["p31_classes"]]
 
-        # Build Wikidata levels for this item: merge P279 chains from all its P31 values
-        wd_levels: dict[int, list[str]] = {}
+        # Collect all P910-derived Wikipedia categories for this item's P31 classes
+        expected_cats = set()
         for p31_qid in p31_qids:
-            if p31_qid in p279_cache:
-                for depth, ancestors in p279_cache[p31_qid].items():
-                    if depth not in wd_levels:
-                        wd_levels[depth] = []
-                    wd_levels[depth].extend(a["label"] for a in ancestors)
+            if p31_qid in p910_by_class:
+                expected_cats.update(p910_by_class[p31_qid])
 
-        # Build Wikipedia levels for this item
-        # Depth 0 = the item's direct categories
-        # Depth 1+ = from the combined BFS (shared across all items)
+        # Build Wikipedia category hierarchy for this item
         wp_levels: dict[int, list[str]] = {0: cats}
         for depth, parent_cats in combined_chain.items():
             wp_levels[depth] = parent_cats
 
-        # Compute hop distance
-        hop = compute_hop_distance(wd_levels, wp_levels)
+        # Check how deep we need to go to find the P910-derived category
+        depth_result = compute_category_depth(expected_cats, wp_levels)
 
         rows.append({
             "qid": item["qid"],
@@ -88,14 +84,13 @@ def build_dataset(domain_name: str, limit: int = 500, delay: float = 1.0) -> pd.
             "domain": item["domain"],
             "p31_classes": "|".join(p31_labels),
             "p31_qids": "|".join(p31_qids),
+            "p910_categories": "|".join(sorted(expected_cats)),
+            "p910_count": len(expected_cats),
             "wikipedia_categories": "|".join(cats),
             "p31_count": len(p31_labels),
             "category_count": len(cats),
-            "total_hops": hop["total_hops"],
-            "hops_wikidata": hop["hops_wikidata"],
-            "hops_wikipedia": hop["hops_wikipedia"],
-            "match_label": hop["match_label"],
-            "match_category": hop["match_category"],
+            "p910_depth": depth_result["min_depth"],
+            "p910_matched_category": depth_result["matched_category"],
         })
 
     return pd.DataFrame(rows)

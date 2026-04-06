@@ -9,7 +9,7 @@ if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 from src.etl import build_all_domains
-from src.analysis import p31_category_overlap, domain_summary
+from src.analysis import p910_category_overlap, domain_summary
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
     print(f"Fetching up to {limit} items per domain...")
 
     df = build_all_domains(limit=limit, delay=1.0)
-    df = p31_category_overlap(df)
+    df = p910_category_overlap(df)
 
     os.makedirs("data/processed", exist_ok=True)
     df.to_csv("data/processed/ontology_comparison.csv", index=False)
@@ -29,21 +29,26 @@ def main():
     print("\nDomain summary:")
     print(summary.to_string(index=False))
 
-    # Hop distance stats (only if the column exists — old data may lack it)
-    if "total_hops" in df.columns:
-        converged = df[df["total_hops"] >= 0]
-        no_match = df[df["total_hops"] < 0]
-        print(f"\nHop distance analysis:")
-        print(f"  Converged: {len(converged)}/{len(df)} items")
-        print(f"  No match within 5 hops: {len(no_match)}/{len(df)} items")
-        if not converged.empty:
-            print(f"  Mean hops to convergence: {converged['total_hops'].mean():.2f}")
-            print(f"  Median hops: {converged['total_hops'].median():.1f}")
+    # P910 depth stats
+    if "p910_depth" in df.columns:
+        found = df[df["p910_depth"] >= 0]
+        not_found = df[df["p910_depth"] < 0]
+        no_p910 = df[df["p910_count"] == 0]
+        print(f"\nP910 category analysis:")
+        print(f"  Items with P910-derived categories: {len(df) - len(no_p910)}/{len(df)}")
+        print(f"  Direct match (depth 0): {len(found[found['p910_depth'] == 0])}")
+        print(f"  Found in parent chain: {len(found[found['p910_depth'] > 0])}")
+        print(f"  Not found within 5 hops: {len(not_found) - len(no_p910)}")
+        print(f"  No P910 link on P31 class: {len(no_p910)}")
+        if not found.empty:
+            print(f"  Mean depth to match: {found['p910_depth'].mean():.2f}")
             print(f"\n  Per domain:")
-            for domain, group in converged.groupby("domain"):
-                print(f"    {domain}: mean={group['total_hops'].mean():.2f}, "
-                      f"median={group['total_hops'].median():.1f}, "
-                      f"converged={len(group)}/{len(df[df['domain'] == domain])}")
+            for domain, group in df.groupby("domain"):
+                g_found = group[group["p910_depth"] >= 0]
+                g_no_p910 = group[group["p910_count"] == 0]
+                print(f"    {domain}: p910_linked={len(group) - len(g_no_p910)}/{len(group)}, "
+                      f"direct_match={len(g_found[g_found['p910_depth'] == 0])}, "
+                      f"found_in_chain={len(g_found[g_found['p910_depth'] > 0])}")
 
 
 if __name__ == "__main__":

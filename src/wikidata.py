@@ -1,4 +1,4 @@
-"""Fetch P31 (instance of) properties from Wikidata via SPARQL."""
+"""Fetch P31 (instance of) properties and P910 category links from Wikidata via SPARQL."""
 
 import time
 from SPARQLWrapper import SPARQLWrapper, JSON
@@ -100,6 +100,58 @@ def fetch_p31_values(qid: str) -> list[dict]:
     return classes
 
 
+def fetch_p910_categories(class_qids: list[str], delay: float = 1.0) -> dict[str, list[dict]]:
+    """For each P31 class QID, fetch P910 (topic's main category) and its enwiki sitelink.
+
+    This is the correct way to link Wikidata classes to Wikipedia categories:
+    P31 class → P910 → Wikidata category item → enwiki sitelink → Wikipedia category.
+
+    Returns dict mapping each input class QID to a list of dicts:
+        {'Q11424': [{'category_qid': 'Q4041405', 'category_label': 'Category:Films',
+                     'enwiki_category': 'Films'}]}
+    """
+    if not class_qids:
+        return {}
+
+    result: dict[str, list[dict]] = {qid: [] for qid in class_qids}
+
+    # Batch into groups of 50 to avoid query limits
+    for i in range(0, len(class_qids), 50):
+        batch = class_qids[i:i + 50]
+        values_clause = " ".join(f"wd:{qid}" for qid in batch)
+
+        query = f"""
+        SELECT ?class ?category ?categoryLabel ?enwikiTitle WHERE {{
+          VALUES ?class {{ {values_clause} }}
+          ?class wdt:P910 ?category .
+          ?enwikiLink schema:about ?category ;
+                      schema:isPartOf <https://en.wikipedia.org/> ;
+                      schema:name ?enwikiTitle .
+          SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+        }}
+        """
+        sparql = _sparql_endpoint()
+        sparql.setQuery(query)
+        time.sleep(delay)
+        results = _query_with_retry(sparql)
+
+        for row in results["results"]["bindings"]:
+            cls_qid = row["class"]["value"].rsplit("/", 1)[-1]
+            cat_qid = row["category"]["value"].rsplit("/", 1)[-1]
+            cat_label = row["categoryLabel"]["value"]
+            enwiki_title = row["enwikiTitle"]["value"]
+            # enwiki_title is like "Category:Films" — strip the prefix
+            enwiki_cat = enwiki_title.replace("Category:", "", 1) if enwiki_title.startswith("Category:") else enwiki_title
+            if cls_qid in result:
+                result[cls_qid].append({
+                    "category_qid": cat_qid,
+                    "category_label": cat_label,
+                    "enwiki_category": enwiki_cat,
+                })
+
+    return result
+
+
 def fetch_p279_parents(qids: list[str], delay: float = 1.0) -> dict[str, list[dict]]:
     """Fetch P279 (subclass of) parents for a batch of QIDs.
 
@@ -132,21 +184,40 @@ def fetch_p279_parents(qids: list[str], delay: float = 1.0) -> dict[str, list[di
     return parents
 
 
-def fetch_p279_chain(start_qids: list[str], max_depth: int = 5, delay: float = 2.0) -> dict[int, list[dict]]:
-    """BFS up the P279 (subclass of) hierarchy from starting QIDs.
+def fetch_p910_chain(class_qids: list[str], max_depth: int = 5, delay: float = 1.0) -> dict[str, list[dict]]:
+    """Walk up P279 from the given class QIDs and collect P910 at each level.
 
-    Returns {depth: [{'qid': ..., 'label': ...}]} where depth 0 is not included
-    (that's the starting P31 values themselves).
+    At each depth, checks if the current classes have P910 links.
+    Returns a flat dict mapping class QID to P910 results, aggregated across depths.
+    Also returns the depth at which each P910 was found.
+
+    Returns list of dicts:
+        [{'source_class': 'Q515', 'depth': 0, 'category_qid': '...', 'enwiki_category': '...'}]
     """
-    visited = set(start_qids)
-    current_level = list(start_qids)
-    result = {}
+    all_p910: list[dict] = []
+    visited = set(class_qids)
+    current_level = list(class_qids)
 
-    for depth in range(1, max_depth + 1):
+    for depth in range(0, max_depth + 1):
         if not current_level:
             break
 
-        # Batch into groups of 50 to avoid query limits
+        # Check P910 for current level
+        p910 = fetch_p910_categories(current_level, delay=delay)
+        for cls_qid, cats in p910.items():
+            for cat in cats:
+                all_p910.append({
+                    "source_class": cls_qid,
+                    "depth": depth,
+                    "category_qid": cat["category_qid"],
+                    "category_label": cat["category_label"],
+                    "enwiki_category": cat["enwiki_category"],
+                })
+
+        if depth == max_depth:
+            break
+
+        # Move up P279
         all_parents = []
         for i in range(0, len(current_level), 50):
             batch = current_level[i:i + 50]
@@ -155,13 +226,11 @@ def fetch_p279_chain(start_qids: list[str], max_depth: int = 5, delay: float = 2
                 for p in parent_list:
                     if p["qid"] not in visited:
                         visited.add(p["qid"])
-                        all_parents.append(p)
+                        all_parents.append(p["qid"])
 
-        if all_parents:
-            result[depth] = all_parents
-        current_level = [p["qid"] for p in all_parents]
+        current_level = all_parents
 
-    return result
+    return all_p910
 
 
 def fetch_domain(domain_name: str, limit: int = 500, delay: float = 1.0) -> list[dict]:
