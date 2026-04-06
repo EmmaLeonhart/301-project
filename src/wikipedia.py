@@ -7,8 +7,22 @@ import requests
 
 WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
 USER_AGENT = "COSC301-OntologyAnalysis/1.0 (university project)"
+MAX_RETRIES = 4
 SESSION = requests.Session()
 SESSION.headers["User-Agent"] = USER_AGENT
+
+
+def _get_with_retry(params: dict, retries: int = MAX_RETRIES) -> dict:
+    """GET with exponential backoff on 429 errors."""
+    for attempt in range(retries):
+        resp = SESSION.get(WIKIPEDIA_API, params=params)
+        if resp.status_code == 429 and attempt < retries - 1:
+            wait = 2 ** (attempt + 1)
+            print(f"    Wikipedia 429, retrying in {wait}s...")
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp.json()
 
 
 def fetch_categories(title: str) -> list[str]:
@@ -24,9 +38,7 @@ def fetch_categories(title: str) -> list[str]:
         "clshow": "!hidden",
         "format": "json",
     }
-    resp = SESSION.get(WIKIPEDIA_API, params=params)
-    resp.raise_for_status()
-    data = resp.json()
+    data = _get_with_retry(params)
 
     pages = data.get("query", {}).get("pages", {})
     categories = []
@@ -70,9 +82,7 @@ def fetch_parent_categories_batch(category_names: list[str], delay: float = 0.5)
             "clshow": "!hidden",
             "format": "json",
         }
-        resp = SESSION.get(WIKIPEDIA_API, params=params)
-        resp.raise_for_status()
-        data = resp.json()
+        data = _get_with_retry(params)
 
         # Build a lookup from normalized/resolved title back to our input name
         pages = data.get("query", {}).get("pages", {})
