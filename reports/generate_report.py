@@ -230,7 +230,7 @@ def generate_html(data_dir="data/processed", output_path="docs/index.html"):
             p279_val = f"{r['mean_p279_depth']:.1f}" if not pd.isna(r.get("mean_p279_depth")) else "N/A"
             wp_val = f"{r['mean_wp_depth']:.1f}" if not pd.isna(r.get("mean_wp_depth")) else "N/A"
             domain_table_rows += f"""        <tr>
-          <td>{r['domain'].title()}</td><td>{r['items']}</td>
+          <td>{r['domain'].replace('_', ' ').title()}</td><td>{r['items']}</td>
           <td>{p279_val}</td><td>{wp_val}</td><td>{r['mean_depth']:.1f}</td>
           <td>{r['match_rate']:.0%}</td><td>{r['mean_p31']:.1f}</td><td>{r['mean_cats']:.1f}</td>
         </tr>\n"""
@@ -241,17 +241,26 @@ def generate_html(data_dir="data/processed", output_path="docs/index.html"):
           <td>{r['mean_p31']:.1f}</td><td>{r['mean_cats']:.1f}</td>
         </tr>\n"""
 
-    # Build CSS bar chart rows for mean depth
-    bar_rows = ""
-    plot_stats = stats.dropna(subset=["mean_depth"]).sort_values("mean_depth", ascending=False)
-    max_depth = plot_stats["mean_depth"].max() if len(plot_stats) > 0 else 1
-    for _, r in plot_stats.iterrows():
-        pct = (r["mean_depth"] / max(max_depth, 0.1)) * 100
-        pct = max(pct, 4)  # minimum bar width for label visibility
-        bar_rows += f"""      <div class="bar-row">
-        <div class="bar-label">{r['domain'].title()}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:{pct:.0f}%">{r['mean_depth']:.1f}</div></div>
+    # Build CSS bar chart rows for each depth metric
+    def _build_bar_rows(stats_df, col, max_val=None):
+        rows = ""
+        plot_df = stats_df.dropna(subset=[col]).sort_values(col, ascending=False)
+        if max_val is None:
+            max_val = plot_df[col].max() if len(plot_df) > 0 else 1
+        for _, r in plot_df.iterrows():
+            pct = (r[col] / max(max_val, 0.1)) * 100
+            pct = max(pct, 4)
+            rows += f"""      <div class="bar-row">
+        <div class="bar-label">{r['domain'].replace('_', ' ').title()}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:{pct:.0f}%">{r[col]:.1f}</div></div>
       </div>\n"""
+        return rows
+
+    # Use same max across all three charts for visual consistency
+    all_max = stats.dropna(subset=["mean_depth"])["mean_depth"].max() if len(stats.dropna(subset=["mean_depth"])) > 0 else 1
+    bar_rows_total = _build_bar_rows(stats, "mean_depth", all_max)
+    bar_rows_p279 = _build_bar_rows(stats, "mean_p279_depth", all_max) if has_both else ""
+    bar_rows_wp = _build_bar_rows(stats, "mean_wp_depth", all_max) if has_both else ""
 
     # Domains sampled table
     from src.wikidata import DOMAINS
@@ -440,9 +449,20 @@ python -m pytest tests/ -v            # run tests</code></pre>
       <div class="card"><div class="stat">{overall_mean_depth:.1f}</div><div class="label">Average minimum Wikipedia depth to P910 (topic's main category) match</div></div>
     </div>
 
-    <h3>Average Minimum Wikipedia Category Depth to P910 (topic's main category) Match</h3>
+    <h3>Average P279 (subclass of) Depth</h3>
+    <p>How many hops up Wikidata's P279 (subclass of) hierarchy from the P31 (instance of) class to find a class with P910 (topic's main category).</p>
     <div class="bar-chart">
-{bar_rows}    </div>
+{bar_rows_p279}    </div>
+
+    <h3>Average Wikipedia Category Depth</h3>
+    <p>How many levels up the Wikipedia parent-category chain to find the P910 (topic's main category) predicted category.</p>
+    <div class="bar-chart">
+{bar_rows_wp}    </div>
+
+    <h3>Average Total Depth (P279 + Wikipedia)</h3>
+    <p>Combined minimum hops across both Wikidata and Wikipedia to connect P31 (instance of) to the matching Wikipedia category.</p>
+    <div class="bar-chart">
+{bar_rows_total}    </div>
 
     <h3>Domain Summary</h3>
     <table>
