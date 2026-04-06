@@ -42,7 +42,7 @@ jobs:
         run: |
           quarto render reports/report.qmd --to html
           quarto render reports/report.qmd --to pdf
-          cp reports/report.html docs/report.html
+          cp reports/report.html docs/index.html
           cp reports/report.pdf docs/report.pdf
 
       # Commit report + push everything
