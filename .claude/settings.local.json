@@ -8,7 +8,11 @@
       "Bash(git push:*)",
       "Bash(gh run:*)",
       "Bash(gh workflow:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" reports/generate_report.py)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m pytest tests/ -v)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" acquire.py 5)",
+      "Bash('C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe' -c ':*)"
     ]
   }
 }
