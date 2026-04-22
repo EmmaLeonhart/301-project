@@ -1,4 +1,5 @@
 domain,item_count,mean_p31_count,mean_category_count,mean_overlap_ratio,median_overlap_ratio,mean_p910_count,mean_depth,median_depth
-animals,3,1.6666666666666667,7.333333333333333,0.0,0.0,1.6666666666666667,3.0,5.0
-cities,50,3.24,6.88,0.049,0.0,1.72,1.72,2.0
-films,50,1.04,22.92,0.0,0.0,1.02,1.0,1.0
+animals,4,1.5,5.5,0.0,0.0,1.5,2.0,2.0
+chemical_elements,50,1.9,6.14,0.84,1.0,1.5,0.0,0.0
+cities,50,3.24,6.44,0.049,0.0,1.66,1.72,2.0
+films,50,1.04,22.78,0.0,0.0,1.02,1.0,1.0
