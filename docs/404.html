@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 &mdash; Not Found &middot; Wikidata Ontology vs Wikipedia Categories</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#4361ee">
+  <style>
+    :root {
+      --bg: #ffffff; --fg: #1a1a2e; --accent: #4361ee; --accent2: #3a0ca3;
+      --muted: #6c757d; --card-bg: #f8f9fa; --border: #dee2e6; --code-bg: #e9ecef;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); line-height: 1.7; display: flex; flex-direction: column; min-height: 100vh; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 1.5rem; }
+    header { background: linear-gradient(135deg, var(--accent2), var(--accent)); color: white; padding: 4rem 0; text-align: center; }
+    header .code { font-size: 5rem; font-weight: 700; line-height: 1; letter-spacing: 0.05em; }
+    header h1 { font-size: 2rem; margin-top: 0.75rem; }
+    header p { font-size: 1.1rem; opacity: 0.9; margin-top: 0.5rem; }
+    main { flex: 1; padding: 3rem 0; }
+    main p { margin-bottom: 1rem; }
+    h2 { font-size: 1.4rem; margin-bottom: 1rem; color: var(--accent2); }
+    .links { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
+    .link-btn { display: inline-block; padding: 0.7rem 1.5rem; background: linear-gradient(135deg, var(--accent2), var(--accent)); color: white; text-decoration: none; font-weight: 600; border-radius: 6px; font-size: 1rem; transition: transform 0.1s, box-shadow 0.2s; }
+    .link-btn.secondary { background: var(--card-bg); color: var(--accent2); border: 1px solid var(--border); }
+    .link-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(58, 12, 163, 0.18); }
+    footer { text-align: center; padding: 2rem 0; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); }
+    footer a { color: var(--accent); }
+    @media (max-width: 600px) {
+      header .code { font-size: 3.5rem; }
+      header h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="code">404</div>
+    <h1>Page not found</h1>
+    <p>That link followed a parent category one level too far up the tree.</p>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <h2>Nothing here</h2>
+    <p>The page you were looking for doesn&rsquo;t exist on this site &mdash; it may have moved, or the URL might have a typo. This is the COSC 301 project comparing Wikidata&rsquo;s P31 ontology with English Wikipedia categories.</p>
+    <p>Try one of these instead:</p>
+    <div class="links">
+      <a class="link-btn" href="/301-project/">Back to the project home</a>
+      <a class="link-btn secondary" href="/301-project/report.pdf">Download the report (PDF)</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>COSC 301 &mdash; Data Analytics &middot; <a href="https://github.com/EmmaLeonhart/301-project">View source on GitHub</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
